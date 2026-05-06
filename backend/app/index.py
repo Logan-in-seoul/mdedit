@@ -140,16 +140,11 @@ def _index_file(db: sqlite3.Connection, root: RootConfig, path: Path) -> None:
         if type_token not in tags:
             tags = tags + [type_token]
     tags_blob = " ".join(tags)
-    # Parse wikilinks (exclude code blocks and invalid titles)
-    import re as _re
-    from app.wikilinks import _mask_code_blocks, _INVALID_TITLE_RE
-    wikilink_re = _re.compile(r'\[\[([^\]|#^]+)')
+    # Parse wikilinks using the shared parser (requires [[...]] closing, filters invalid titles)
+    from app.wikilinks import parse_wikilinks
     link_targets = []
-    for m in wikilink_re.finditer(_mask_code_blocks(text)):
-        target_stem = m.group(1).strip()
-        if _INVALID_TITLE_RE.search(target_stem):
-            continue
-        dst_id = f"{root.name}://{target_stem}.md"
+    for ref in parse_wikilinks(text):
+        dst_id = f"{root.name}://{ref.title}.md"
         link_targets.append(dst_id)
 
     with _DB_LOCK:
