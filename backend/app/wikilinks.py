@@ -22,6 +22,10 @@ _WIKI_RE = re.compile(r"\[\[([^\[\]|]+?)(?:\|([^\[\]]+))?\]\]")
 
 _INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
 
+# Reject titles that are clearly code artifacts, not file paths.
+# Matches: contains quotes, starts with $, bare :word: char-class, coord like "1,1"
+_INVALID_TITLE_RE = re.compile(r'["\']|\$|^:\w+:$|^\d+,\d+$')
+
 
 def _mask_code_blocks(text: str) -> str:
     """코드 블록 내부를 공백으로 대체해 wiki link 파싱에서 제외한다.
@@ -72,6 +76,8 @@ def parse_wikilinks(text: str) -> list[WikiRef]:
     refs: list[WikiRef] = []
     for m in _WIKI_RE.finditer(masked):
         title = m.group(1).strip()
+        if _INVALID_TITLE_RE.search(title):
+            continue
         display = m.group(2).strip() if m.group(2) else title
         refs.append(WikiRef(title=title, display=display, start=m.start(), end=m.end()))
     return refs
