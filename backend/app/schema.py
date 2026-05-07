@@ -71,6 +71,7 @@ class TagEntry(BaseModel):
 class GraphNode(BaseModel):
     id: str
     label: str
+    isCurrent: bool = False
 
 
 class GraphEdge(BaseModel):

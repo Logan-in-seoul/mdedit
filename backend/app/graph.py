@@ -32,5 +32,11 @@ def build_graph(conn: sqlite3.Connection, path_id: str, depth: int) -> dict:
                 visited.add(dst)
                 queue.append((dst, current_depth + 1))
 
-    nodes = [{"id": nid, "label": nid.split("://")[-1]} for nid in visited]
+    def _label(nid: str) -> str:
+        # Show just the filename stem for clean display in graph view
+        path_part = nid.split("://", 1)[-1]
+        name = path_part.rsplit("/", 1)[-1]
+        return name[:-3] if name.endswith(".md") else name
+
+    nodes = [{"id": nid, "label": _label(nid), "isCurrent": nid == path_id} for nid in visited]
     return {"nodes": nodes, "edges": edges}

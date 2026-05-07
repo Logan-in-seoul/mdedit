@@ -68,7 +68,7 @@ function GraphPanel() {
 
   const nodeColor = useCallback(
     (node: GraphNode) => {
-      if (node.id === currentPath) return CURRENT_COLOR;
+      if (node.isCurrent) return CURRENT_COLOR;
       const isInlink = graphData.links.some(
         (e) => e.target === currentPath && e.source === node.id,
       );
