@@ -127,7 +127,6 @@ export const api = {
     ),
 };
 
-// side-effect: mount the backlinks panel as a second React root.
-// imported here (not in main.tsx) to keep file budget within 5.
-import "../components/BacklinksPanel";
-import "../components/GraphPanel";
+// side-effect: mount panels as second React roots — dynamic to keep main chunk lean.
+void import("../components/BacklinksPanel");
+void import("../components/GraphPanel");

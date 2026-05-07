@@ -2,10 +2,11 @@
  * GraphPanel — react-force-graph-2d 기반 위키링크 관계 그래프 패널.
  * Ctrl+G 로 토글. mdedit:note-opened 이벤트로 현재 파일 추적.
  */
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import ForceGraph2D from "react-force-graph-2d";
 import { api, GraphNode, GraphEdge } from "../lib/api";
+
+const ForceGraph2D = lazy(() => import("react-force-graph-2d"));
 import { WIKI_OPEN_EVENT } from "./WikiLink";
 
 const CURRENT_COLOR = "#1D8BFF";
@@ -138,18 +139,20 @@ function GraphPanel() {
       {loading && <div style={{ padding: "24px", textAlign: "center", fontSize: "12px", color: "#888" }}>로딩 중…</div>}
       {error && <div style={{ padding: "12px", fontSize: "12px", color: "#f87171" }}>{error}</div>}
       {!loading && !error && (
-        <ForceGraph2D
-          graphData={graphData}
-          width={width || 320}
-          height={300}
-          nodeLabel="label"
-          nodeColor={nodeColor as (node: object) => string}
-          onNodeClick={handleNodeClick as (node: object) => void}
-          onNodeRightClick={handleNodeRightClick as (node: object) => void}
-          linkColor={() => "#555"}
-          nodeRelSize={5}
-          cooldownTicks={60}
-        />
+        <Suspense fallback={<div style={{ padding: "24px", textAlign: "center", fontSize: "12px", color: "#888" }}>그래프 로딩…</div>}>
+          <ForceGraph2D
+            graphData={graphData}
+            width={width || 320}
+            height={300}
+            nodeLabel="label"
+            nodeColor={nodeColor as (node: object) => string}
+            onNodeClick={handleNodeClick as (node: object) => void}
+            onNodeRightClick={handleNodeRightClick as (node: object) => void}
+            linkColor={() => "#555"}
+            nodeRelSize={5}
+            cooldownTicks={60}
+          />
+        </Suspense>
       )}
     </div>
   );

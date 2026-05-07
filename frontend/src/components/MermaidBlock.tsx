@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import mermaid from "mermaid";
-
-mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict" });
 
 let counter = 0;
+
+// lazy-load mermaid on first use to keep the main bundle lean
+let _mermaidReady: Promise<typeof import("mermaid")["default"]> | null = null;
+function getMermaid() {
+  if (!_mermaidReady) {
+    _mermaidReady = import("mermaid").then((m) => {
+      m.default.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict" });
+      return m.default;
+    });
+  }
+  return _mermaidReady;
+}
 
 interface Props {
   code: string;
@@ -15,12 +24,10 @@ export function MermaidBlock({ code }: Props) {
 
   useEffect(() => {
     const id = `mermaid-${++counter}`;
-    mermaid
-      .render(id, code)
+    getMermaid()
+      .then((mermaid) => mermaid.render(id, code))
       .then(({ svg }) => {
-        if (ref.current) {
-          ref.current.innerHTML = svg;
-        }
+        if (ref.current) ref.current.innerHTML = svg;
       })
       .catch((e) => setError(String(e)));
   }, [code]);
