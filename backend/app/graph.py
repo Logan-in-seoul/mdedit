@@ -23,14 +23,18 @@ def build_graph(conn: sqlite3.Connection, path_id: str, depth: int) -> dict:
         current, current_depth = queue.popleft()
         if current_depth >= depth:
             continue
-        rows = conn.execute(
-            "SELECT dst FROM links WHERE src = ?", (current,)
-        ).fetchall()
-        for (dst,) in rows:
+        # Outlinks: current → dst
+        for (dst,) in conn.execute("SELECT dst FROM links WHERE src = ?", (current,)).fetchall():
             edges.append({"source": current, "target": dst})
             if dst not in visited:
                 visited.add(dst)
                 queue.append((dst, current_depth + 1))
+        # Inlinks: src → current (backlinks)
+        for (src,) in conn.execute("SELECT src FROM links WHERE dst = ?", (current,)).fetchall():
+            edges.append({"source": src, "target": current})
+            if src not in visited:
+                visited.add(src)
+                queue.append((src, current_depth + 1))
 
     def _label(nid: str) -> str:
         # Show just the filename stem for clean display in graph view
