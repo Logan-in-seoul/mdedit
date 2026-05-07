@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Backend static (built frontend copied here)
+backend/app/static/
+
+# Local state
+*.db
+*.db-*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# TypeScript build info
+frontend/tsconfig.tsbuildinfo
+tsconfig.tsbuildinfo

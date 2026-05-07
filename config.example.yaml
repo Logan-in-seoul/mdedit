@@ -1,0 +1,19 @@
+roots:
+  - name: common
+    path: /home/logan/workspace/common
+  - name: skills
+    path: /home/logan/.claude/skills
+  - name: memory
+    path: /home/logan/.claude/projects/-home-logan-workspace-common/memory
+  - name: tour
+    path: /home/logan/.claude/tour
+
+exclude:
+  - node_modules
+  - .git
+  - "*.log"
+
+respect_gitignore: true
+server:
+  host: 127.0.0.1
+  port: 8787

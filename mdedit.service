@@ -1,0 +1,15 @@
+[Unit]
+Description=mdedit local MD workspace
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=@@ROOT@@/backend
+ExecStart=@@ROOT@@/backend/.venv/bin/python -m app
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:%h/.local/state/mdedit/mdedit.log
+StandardError=append:%h/.local/state/mdedit/mdedit.log
+
+[Install]
+WantedBy=default.target
