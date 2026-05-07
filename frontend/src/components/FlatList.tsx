@@ -92,6 +92,16 @@ export function FlatList({ onSelect, selected }: Props) {
     return () => window.removeEventListener(WIKI_OPEN_EVENT, handler);
   }, [onSelect]);
 
+  // backlinks panel 클릭 → 해당 파일 선택
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ path: string }>).detail;
+      if (detail?.path) onSelect(detail.path);
+    };
+    window.addEventListener("mdedit:backlink-clicked", handler);
+    return () => window.removeEventListener("mdedit:backlink-clicked", handler);
+  }, [onSelect]);
+
   // [[ 입력 감지: wiki-suggest 모드 전환
   useEffect(() => {
     const q = filter;
