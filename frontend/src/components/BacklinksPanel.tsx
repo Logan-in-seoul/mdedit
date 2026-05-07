@@ -145,6 +145,20 @@ function injectStyles() {
     }
     .bl-list a:hover { text-decoration: underline; }
     .bl-meta { color: #aaa; font-size: 11px; }
+    @media (prefers-color-scheme: dark) {
+      .bl-panel {
+        background: #1a1a1a; border-left-color: #2a2a2a;
+        box-shadow: -1px 0 6px rgba(0,0,0,0.4);
+      }
+      .bl-header { border-bottom-color: #2a2a2a; }
+      .bl-title { color: #aaa; }
+      .bl-toggle { border-color: #333; color: #888; }
+      .bl-toggle:hover { background: #2a2a2a; color: #fff; }
+      .bl-empty { color: #666; }
+      .bl-list li { border-bottom-color: #2a2a2a; }
+      .bl-list a { color: #7ab8ff; }
+      .bl-meta { color: #666; }
+    }
   `;
   const style = document.createElement("style");
   style.id = "bl-panel-styles";
