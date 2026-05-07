@@ -22,9 +22,9 @@ _WIKI_RE = re.compile(r"\[\[([^\[\]|]+?)(?:\|([^\[\]]+))?\]\]")
 
 _INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
 
-# Reject titles that are clearly code artifacts, not file paths.
-# Matches: contains quotes, starts with $, bare :word: char-class, coord like "1,1"
-_INVALID_TITLE_RE = re.compile(r'["\']|\$|^:\w+:$|^\d+,\d+$')
+# Reject titles that are clearly code artifacts or block-ref syntax, not file paths.
+# Matches: contains quotes, starts with $, bare :word: char-class, coord like "1,1", starts with ^
+_INVALID_TITLE_RE = re.compile(r'["\']|\$|^:\w+:$|^\d+,\d+$|^\^')
 
 
 def _mask_code_blocks(text: str) -> str:
