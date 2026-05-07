@@ -140,11 +140,12 @@ def _index_file(db: sqlite3.Connection, root: RootConfig, path: Path) -> None:
         if type_token not in tags:
             tags = tags + [type_token]
     tags_blob = " ".join(tags)
-    # Parse wikilinks
+    # Parse wikilinks (exclude code blocks to avoid false positives)
     import re as _re
+    from app.wikilinks import _mask_code_blocks
     wikilink_re = _re.compile(r'\[\[([^\]|#^]+)')
     link_targets = []
-    for m in wikilink_re.finditer(text):
+    for m in wikilink_re.finditer(_mask_code_blocks(text)):
         target_stem = m.group(1).strip()
         dst_id = f"{root.name}://{target_stem}.md"
         link_targets.append(dst_id)

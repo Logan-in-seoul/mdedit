@@ -20,6 +20,44 @@ import app.index as fts_index
 # [[파일명]] 또는 [[파일명|표시텍스트]]
 _WIKI_RE = re.compile(r"\[\[([^\[\]|]+?)(?:\|([^\[\]]+))?\]\]")
 
+_INLINE_CODE_RE = re.compile(r"`[^`\n]+`")
+
+
+def _mask_code_blocks(text: str) -> str:
+    """코드 블록 내부를 공백으로 대체해 wiki link 파싱에서 제외한다.
+
+    오프셋을 보존하므로 WikiRef.start/end는 원문 기준으로 유효하다.
+    펜스 블록은 라인 단위 파서로 처리해 중첩/연속 펜스 오인식을 방지한다.
+    """
+    chars = list(text)
+
+    # Fenced code blocks: line-by-line state machine to correctly handle
+    # consecutive blocks (regex approach misidentifies bare ``` as opening fence)
+    fence_open: str | None = None
+    pos = 0
+    for line in text.splitlines(keepends=True):
+        stripped = line.rstrip("\r\n")
+        if fence_open is None:
+            # Opening fence: ``` or ~~~ followed by optional language
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                fence_open = stripped[:3]
+                for i in range(pos, pos + len(line)):
+                    chars[i] = " "
+        else:
+            for i in range(pos, pos + len(line)):
+                chars[i] = " "
+            # Closing fence: same marker, nothing else (or only spaces after)
+            if stripped.rstrip() == fence_open:
+                fence_open = None
+        pos += len(line)
+
+    # Inline code spans
+    for m in _INLINE_CODE_RE.finditer(text):
+        for i in range(m.start(), m.end()):
+            chars[i] = " "
+
+    return "".join(chars)
+
 
 class WikiRef(NamedTuple):
     title: str        # [[...]] 안의 파일명/제목
@@ -30,8 +68,9 @@ class WikiRef(NamedTuple):
 
 def parse_wikilinks(text: str) -> list[WikiRef]:
     """마크다운 본문에서 [[...]] 패턴을 모두 추출한다."""
+    masked = _mask_code_blocks(text)
     refs: list[WikiRef] = []
-    for m in _WIKI_RE.finditer(text):
+    for m in _WIKI_RE.finditer(masked):
         title = m.group(1).strip()
         display = m.group(2).strip() if m.group(2) else title
         refs.append(WikiRef(title=title, display=display, start=m.start(), end=m.end()))
