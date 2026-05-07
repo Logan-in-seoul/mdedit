@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.fs import FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file
@@ -15,6 +16,7 @@ from app.graph import build_graph
 from app.blocks import extract_blocks
 
 app = FastAPI(title="mdedit", version="0.1.0")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _config: AppConfig | None = None
 
