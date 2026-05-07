@@ -561,6 +561,11 @@ body:has(.outline-sidebar) .main {
   cursor: not-allowed;
 }
 
+@media (prefers-color-scheme: dark) {
+  .wiki-link:hover { background: #1a2a44; }
+  .wiki-suggest-hint { border-bottom-color: #2a2a2a; }
+}
+
 /* wiki-suggest 드롭다운 힌트 */
 .wiki-suggest-hint {
   font-size: 11px;
