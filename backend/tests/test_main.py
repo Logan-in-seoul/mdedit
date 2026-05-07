@@ -214,3 +214,38 @@ def test_search_operator_in_query_string(search_client: TestClient):
     data = response.json()
     paths = [h["path"] for h in data["hits"]]
     assert any("memory" in p for p in paths)
+
+
+# ---------------------------------------------------------------------------
+# /api/resolve — [[title]] → virtual path 변환 엔드포인트 테스트
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_finds_file_by_stem(search_client: TestClient):
+    response = search_client.get("/api/resolve", params={"title": "user_note"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["path"] is not None
+    assert "user_note.md" in data["path"]
+
+
+def test_resolve_finds_file_with_md_extension(search_client: TestClient):
+    response = search_client.get("/api/resolve", params={"title": "skill_note.md"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["path"] is not None
+    assert "skill_note" in data["path"]
+
+
+def test_resolve_returns_null_for_missing_title(search_client: TestClient):
+    response = search_client.get("/api/resolve", params={"title": "nonexistent-note"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["path"] is None
+
+
+def test_resolve_case_insensitive(search_client: TestClient):
+    response = search_client.get("/api/resolve", params={"title": "USER_NOTE"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["path"] is not None
