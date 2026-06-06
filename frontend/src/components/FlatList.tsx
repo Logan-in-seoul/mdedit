@@ -163,7 +163,35 @@ export function FlatList({ onSelect, selected }: Props) {
 
         const textParam = restTokens.join(" ");
         const res = await api.search(textParam, tagParam, 200, pathParam, typeParam);
-        setSearchHits(res.hits);
+        // 파일명·경로에 검색어가 들어간 hit를 위로 끌어올린다. 줄 단위 bm25가
+        // 짧은 주변 언급(예: "Airwallex" 한 줄)을 본문 문서보다 위에 두는 문제 보정.
+        // 그룹 내 원래(bm25) 순서는 안정 정렬로 유지한다.
+        const needle = textParam.trim().toLowerCase();
+        // 제목 > 파일명 > 경로 순으로 끌어올린다. 줄 단위 bm25가 짧은 주변 언급
+        // (예: "Airwallex" 한 줄)을 본문 문서보다 위에 두는 문제 보정.
+        // 그룹 내 원래(bm25) 순서는 안정 정렬로 유지한다.
+        const titleByPath = new Map(
+          (files ?? []).map((f) => [f.path, (f.title || "").toLowerCase()])
+        );
+        const ranked = needle
+          ? res.hits
+              .map((h, i) => {
+                const title = titleByPath.get(h.path) || "";
+                const name = (h.name || "").toLowerCase();
+                const path = (h.path || "").toLowerCase();
+                const tier = title.includes(needle)
+                  ? 0
+                  : name.includes(needle)
+                  ? 1
+                  : path.includes(needle)
+                  ? 2
+                  : 3;
+                return { h, i, tier };
+              })
+              .sort((a, b) => a.tier - b.tier || a.i - b.i)
+              .map((x) => x.h)
+          : res.hits;
+        setSearchHits(ranked);
       } catch {
         setSearchHits([]);
       } finally {
@@ -307,7 +335,7 @@ export function FlatList({ onSelect, selected }: Props) {
               onClick={() => onSelect(f.path)}
               title={f.path}
             >
-              <div className="flatlist-name">{f.name}</div>
+              <div className="flatlist-name">{f.title || f.name}</div>
               <div className="flatlist-meta">
                 <span className="flatlist-time">{formatRelative(f.mtime)}</span>
                 <span className="flatlist-path">

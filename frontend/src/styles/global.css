@@ -117,7 +117,7 @@ blockquote {
 }
 
 .reader {
-  font-size: 16px;
+  font-size: calc(16px * var(--reader-scale, 1));
 }
 
 .frontmatter {
@@ -575,4 +575,287 @@ body:has(.outline-sidebar) .main {
   padding: 4px 0 8px;
   border-bottom: 1px solid #e5e5e5;
   margin-bottom: 4px;
+}
+
+/* ============ 가독성 표기 (/scr 텔레프롬프터) ============ */
+
+/* 볼드 = 실제로 말할 핵심 줄. 굵기 + 또렷한 텍스트색. */
+.reader .body strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.reader .body em {
+  font-style: italic;
+}
+
+/* ==하이라이트== — 단색 형광. 검색 스니펫 mark와 분리해 더 진하게. */
+.reader .body mark {
+  background: #ffe89a;
+  color: #4a3500;
+  border-radius: 3px;
+  padding: 0 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* 콘텐츠 타입 라벨 배지. 타입군별 색. */
+.scr-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 1px 8px;
+  margin-right: 7px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  letter-spacing: 0.02em;
+  vertical-align: 0.06em;
+  font-family: var(--font-mono, inherit);
+}
+
+.scr-label-intro   { background: #e6fffa; color: #0f766e; border-color: #99f6e4; }
+.scr-label-frame   { background: #e8f3ff; color: #1d4ed8; border-color: #bcdcff; }
+.scr-label-ask     { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.scr-label-answer  { background: #f5f0ff; color: #7c3aed; border-color: #ddd0ff; }
+.scr-label-context { background: #f4f4f5; color: #52525b; border-color: #e4e4e7; }
+.scr-label-close   { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.scr-label-caution { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+
+/* 단독 라벨 줄(**소개**) — 아래 발언에 바짝 붙인다. */
+.reader .body p:has(> .scr-label:only-child) {
+  margin-bottom: 1px;
+}
+
+/* 영어 백업 단락 — muted 작은 이탤릭. */
+.reader .body p.scr-en {
+  color: #8a8a8a;
+  font-size: 0.9em;
+  margin-top: 2px;
+}
+
+/* 분기 블록 — 좌측 테두리 + 틴트. "만약 …하면:" / "상대가 …하면:" */
+.reader .body p.scr-branch,
+.reader .body li.scr-branch {
+  border-left: 3px solid #1D8BFF;
+  background: #f0f7ff;
+  color: #0f243f;
+  padding: 8px 14px;
+  border-radius: 0 6px 6px 0;
+  margin: 8px 0;
+}
+
+/* 분기 불릿(li)은 마커를 빼고 블록처럼 보이게 */
+.reader .body li.scr-branch {
+  list-style: none;
+  margin-left: -24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 다크 모드 기본 표면·글자색. 이게 없으면 본문 배경이 밝은 채로 남아
+     strong(#f1f5f9) 같은 밝은 글자가 흰 배경에 묻혀 안 보인다. */
+  body { background: #14171c; color: #e6e8ec; }
+  .sidebar { background: #1a1d23; border-right-color: #2a2e36; }
+  .frontmatter { background: #1b2030; }
+  .flatlist-name { color: #e6e8ec; }
+  .flatlist-meta { color: #9aa0aa; }
+  .flatlist-filter { background: #1a1d23; color: #e6e8ec; border-color: #2a2e36; }
+  .flatlist-row.selected { background: #243044; }
+  .brand { color: #9aa0aa; }
+  .reader .body { color: #e6e8ec; }
+  .reader .body h1, .reader .body h2, .reader .body h3 { color: #f1f5f9; }
+  .reader .body strong { color: #f1f5f9; }
+  .reader .body mark {
+    background: #e0b94d;
+    color: #241a00;
+  }
+  .reader .body p.scr-en { color: #a8aeb8; }
+  .reader .body p.scr-branch,
+  .reader .body li.scr-branch {
+    border-left-color: #4da3ff;
+    background: #14243d;
+    color: #e8eff9;
+  }
+  .scr-label-intro   { background: #0d2b28; color: #5eead4; border-color: #155e57; }
+  .scr-label-frame   { background: #14243d; color: #7ab8ff; border-color: #1e3a5f; }
+  .scr-label-ask     { background: #1e1b4b; color: #a5b4fc; border-color: #312e81; }
+  .scr-label-answer  { background: #2a1d4b; color: #c4b5fd; border-color: #4c1d95; }
+  .scr-label-context { background: #232323; color: #a1a1aa; border-color: #3a3a3a; }
+  .scr-label-close   { background: #0d2b1e; color: #6ee7b7; border-color: #155e3f; }
+  .scr-label-caution { background: #2b220d; color: #fbbf24; border-color: #5c4400; }
+}
+
+/* ============ 읽기 / 발표 모드 ============ */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reading-toggle {
+  border: 1px solid #d4d4d8;
+  background: #fff;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.reading-toggle:hover {
+  border-color: #1D8BFF;
+  color: #1D8BFF;
+}
+
+/* 읽기 모드: 사이드바·메타·패널 숨기고 본문만 크게 */
+.app.reading {
+  grid-template-columns: 1fr;
+}
+
+.app.reading .sidebar {
+  display: none;
+}
+
+.app.reading .main {
+  max-width: 820px;
+  padding: 56px 40px 120px;
+}
+
+.app.reading .reader {
+  font-size: calc(20px * var(--reader-scale, 1));
+}
+
+.app.reading .reader .body {
+  line-height: 1.95;
+}
+
+.app.reading .reader .body h1 { font-size: 34px; }
+.app.reading .reader .body h2 { font-size: 27px; }
+.app.reading .reader .body h3 { font-size: 22px; }
+
+.app.reading .frontmatter,
+.app.reading .memo-panel {
+  display: none !important;
+}
+
+/* 백링크·아웃라인 패널은 body 직속 독립 root라 body 클래스로 숨긴다. */
+body.reading-active #backlinks-root,
+body.reading-active #outline-host,
+body.reading-active .bl-panel,
+body.reading-active .bl-toggle,
+body.reading-active .outline-sidebar,
+body.reading-active .outline-toggle {
+  display: none !important;
+}
+
+/* 아웃라인이 숨겨지므로 본문 우측 패딩 보정도 해제 */
+body.reading-active .main {
+  padding-right: 40px;
+}
+
+/* 읽기 모드 플로팅 툴바 (글자 크기·인쇄·종료) */
+.reading-toolbar {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid #d4d4d8;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.reading-toolbar button {
+  border: none;
+  background: transparent;
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.reading-toolbar button:hover {
+  background: #eef5ff;
+  color: #1D8BFF;
+}
+
+.reading-scale {
+  font-size: 11px;
+  font-weight: 600;
+  color: #71717a;
+  min-width: 38px;
+  text-align: center;
+  font-family: var(--font-mono, monospace);
+}
+
+.reading-toolbar .reading-exit {
+  color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  .reading-toggle { background: #1a1a1a; border-color: #333; color: #aaa; }
+  .reading-toggle:hover { border-color: #4da3ff; color: #4da3ff; }
+  .reading-toolbar { background: rgba(26, 26, 26, 0.92); border-color: #333; }
+  .reading-toolbar button { color: #aaa; }
+  .reading-toolbar button:hover { background: #1a2a44; color: #4da3ff; }
+  .reading-scale { color: #888; }
+  .reading-toolbar .reading-exit { color: #fbbf24; }
+}
+
+/* ============ 인쇄 / PDF export ============ */
+@media print {
+  .sidebar,
+  .reading-toolbar,
+  .reading-toggle,
+  .memo-panel,
+  .frontmatter,
+  #backlinks-root,
+  #outline-host,
+  .bl-panel,
+  .bl-toggle,
+  .outline-sidebar,
+  .outline-toggle {
+    display: none !important;
+  }
+  .app {
+    display: block;
+  }
+  .main {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .reader {
+    font-size: 12pt;
+  }
+  .reader .body {
+    line-height: 1.6;
+  }
+  /* 형광·칩·분기 배경을 인쇄에도 살린다 */
+  .reader .body mark,
+  .scr-label,
+  .reader .body p.scr-branch,
+  .reader .body li.scr-branch {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 분기 블록·라벨이 페이지 경계에서 잘리지 않게 */
+  .reader .body p.scr-branch,
+  .reader .body li.scr-branch,
+  .reader .body h1,
+  .reader .body h2,
+  .reader .body h3 {
+    break-inside: avoid;
+  }
 }
