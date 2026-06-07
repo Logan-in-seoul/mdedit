@@ -39,7 +39,10 @@ def main() -> None:
     set_config(config)
 
     # SQLite index 초기화 후 background에서 refresh (서버 시작 지연 없음)
-    state_dir = Path.home() / ".local" / "share" / "mdedit"
+    state_env = os.environ.get("MDEDIT_STATE_DIR")
+    state_dir = (
+        Path(state_env) if state_env else Path.home() / ".local" / "share" / "mdedit"
+    )
     fts_index.init_db(state_dir)
     t = threading.Thread(target=_background_index, args=(config,), daemon=True)
     t.start()
