@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.fs import (
     FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file,
-    register_external, to_virtual_path,
+    register_external, resolve_virtual_path, to_virtual_path,
 )
 from app.schema import (
     AppConfig, BlockResponse, EmbedResponse, FileContent, FileEntry, FileNode,
@@ -144,6 +144,51 @@ def resolve(title: str = Query(...)) -> dict:
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
     return {"path": path}
+
+
+@app.get("/api/activity")
+def activity(days: int = Query(14, ge=1, le=90), limit: int = Query(300, ge=1, le=1000)) -> dict:
+    """최근 변경 파일 피드 (mtime 역순) — 에이전트 활동 가시화 (v0.8).
+
+    created_same_day: 파일 생성일(birthtime)이 마지막 수정일과 같은 날이면 True
+    (그 날 새로 만들어진 파일로 표시). birthtime 미지원 플랫폼은 False.
+    """
+    import datetime as _dt
+    import time as _time
+
+    try:
+        db = fts_index.get_db()
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+    cutoff = int(_time.time()) - days * 86400
+    rows = db.execute(
+        "SELECT path, name, mtime, title FROM files WHERE mtime >= ? ORDER BY mtime DESC LIMIT ?",
+        (cutoff, limit),
+    ).fetchall()
+
+    cfg = get_config()
+    entries = []
+    for path, name, mtime, title in rows:
+        created_same_day = False
+        try:
+            abs_path = resolve_virtual_path(path, cfg)
+            btime = getattr(abs_path.stat(), "st_birthtime", None)
+            if btime is not None:
+                created_same_day = (
+                    _dt.date.fromtimestamp(btime) == _dt.date.fromtimestamp(mtime)
+                )
+        except (FileNotFoundInVault, OSError):
+            continue
+        entries.append(
+            {
+                "path": path,
+                "name": name,
+                "title": title,
+                "mtime": mtime,
+                "created_same_day": created_same_day,
+            }
+        )
+    return {"days": days, "entries": entries}
 
 
 @app.get("/api/update-check")

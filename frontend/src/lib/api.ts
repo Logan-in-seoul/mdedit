@@ -115,6 +115,17 @@ export const api = {
   },
   tags: (limit = 500) =>
     json<TagEntry[]>(`/api/tags?limit=${limit}`),
+  activity: (days = 14) =>
+    json<{
+      days: number;
+      entries: {
+        path: string;
+        name: string;
+        title: string | null;
+        mtime: number;
+        created_same_day: boolean;
+      }[];
+    }>(`/api/activity?days=${days}`),
   updateCheck: () =>
     json<{
       current: string;

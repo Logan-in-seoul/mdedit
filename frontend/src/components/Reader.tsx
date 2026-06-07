@@ -34,6 +34,14 @@ export function Reader({ path, scrollToLine }: Props) {
     };
   }, [path]);
 
+  // 렌더 완료 알림 — App이 읽던 위치 복원 타이밍으로 사용 (v0.8)
+  useEffect(() => {
+    if (!rendered) return;
+    window.dispatchEvent(
+      new CustomEvent("mdedit:rendered", { detail: { path } }),
+    );
+  }, [rendered, path]);
+
   // 렌더링 완료 후 대상 라인으로 스크롤한다
   useEffect(() => {
     if (!scrollToLine || !rendered || !bodyRef.current) return;
