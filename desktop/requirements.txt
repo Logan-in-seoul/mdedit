@@ -1,0 +1,10 @@
+# mdedit 데스크톱 셸 의존성
+pywebview>=6.0
+pyinstaller>=6.10
+
+# 백엔드(FastAPI 앱 + fastapi/uvicorn/pydantic/pyyaml/python-frontmatter)를
+# 로컬 패키지로 설치한다. PyInstaller 추적 호환을 위해 editable(-e)이 아닌
+# 일반 설치를 쓴다.
+# 주의: pip은 requirements 파일 내 상대 경로를 cwd 기준으로 푼다 —
+# desktop/ 디렉터리에서 실행하거나 build.sh를 사용할 것.
+../backend

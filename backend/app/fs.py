@@ -33,6 +33,36 @@ def resolve_virtual_path(virtual: str, config: AppConfig) -> Path:
     return candidate
 
 
+def to_virtual_path(abs_path: str | Path, config: AppConfig) -> str:
+    """절대 파일시스템 경로를 가상 경로(root://rel/path.md)로 변환한다.
+
+    config roots와 대조해 가장 깊게 매치되는 루트(최장 prefix)를 고른다.
+    roots 밖이거나, .md가 아니거나, 존재하지 않으면 FileNotFoundInVault.
+    """
+    p = Path(abs_path).expanduser()
+    if not p.is_absolute():
+        raise FileNotFoundInVault(f"not an absolute path: {abs_path}")
+    p = p.resolve()
+    if p.suffix.lower() != ".md":
+        raise FileNotFoundInVault(f"not a markdown file: {abs_path}")
+    if not p.is_file():
+        raise FileNotFoundInVault(f"file not found: {abs_path}")
+
+    best: tuple[int, RootConfig, str] | None = None
+    for root in config.roots:
+        root_path = root.path.resolve()
+        try:
+            rel = p.relative_to(root_path)
+        except ValueError:
+            continue
+        depth = len(root_path.parts)
+        if best is None or depth > best[0]:
+            best = (depth, root, rel.as_posix())
+    if best is None:
+        raise FileNotFoundInVault(f"path is outside all configured roots: {p}")
+    return f"{best[1].name}://{best[2]}"
+
+
 def _extract_title(body: str) -> str | None:
     for line in body.splitlines():
         stripped = line.strip()

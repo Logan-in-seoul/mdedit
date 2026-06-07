@@ -63,6 +63,10 @@ class SearchResponse(BaseModel):
     hits: list[SearchHit]
 
 
+class OpenRequest(BaseModel):
+    abs_path: str
+
+
 class TagEntry(BaseModel):
     tag: str
     count: int

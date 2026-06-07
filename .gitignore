@@ -31,3 +31,6 @@ Thumbs.db
 frontend/tsconfig.tsbuildinfo
 tsconfig.tsbuildinfo
 .claude/
+
+# setuptools build dir (pip install ./backend)
+build/
