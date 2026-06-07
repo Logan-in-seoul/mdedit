@@ -60,7 +60,10 @@ const rehypeLineNumbers: Plugin<[], Root> = () => {
 };
 
 const highlighter = (await createHighlighterCore({
-  themes: [import("shiki/themes/github-light.mjs")],
+  themes: [
+    import("shiki/themes/github-light.mjs"),
+    import("shiki/themes/github-dark.mjs"),
+  ],
   langs: [
     import("shiki/langs/typescript.mjs"),
     import("shiki/langs/javascript.mjs"),
@@ -83,7 +86,12 @@ const processor = unified()
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
   .use(rehypeLineNumbers)
-  .use(rehypeShikiFromHighlighter, highlighter, { theme: "github-light" })
+  // 듀얼 테마: 라이트는 인라인 color, 다크는 --shiki-dark 변수로 내보내고
+  // global.css의 prefers-color-scheme 미디어 쿼리가 전환한다.
+  .use(rehypeShikiFromHighlighter, highlighter, {
+    themes: { light: "github-light", dark: "github-dark" },
+    defaultColor: "light",
+  })
   .use(rehypeKatex)
   .use(rehypeTagChips)
   .use(rehypeWikiLinks)

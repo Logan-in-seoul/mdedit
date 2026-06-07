@@ -109,55 +109,45 @@ function BacklinksPanel() {
 // inject CSS once
 function injectStyles() {
   if (document.getElementById("bl-panel-styles")) return;
+  // 색·표면은 global.css의 디자인 토큰(:root)을 그대로 참조한다 (v0.6.0).
   const css = `
     .bl-panel {
       position: fixed; top: 0; right: 0; bottom: 0; width: 240px;
-      background: #fff; border-left: 1px solid #e5e5e5; padding: 12px;
+      background: var(--surface-raised); border-left: 1px solid var(--line); padding: 12px;
       overflow-y: auto; font-size: 13px; z-index: 50;
       box-shadow: -2px 0 8px rgba(0,0,0,0.03);
     }
     .bl-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;
+      margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft);
     }
     .bl-title {
       font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
-      text-transform: uppercase; color: #666;
+      text-transform: uppercase; color: var(--ink-soft);
     }
     .bl-toggle {
-      background: transparent; border: 1px solid #ddd; border-radius: 4px;
-      width: 24px; height: 24px; cursor: pointer; color: #666;
+      background: transparent; border: 1px solid var(--line); border-radius: 4px;
+      width: 24px; height: 24px; cursor: pointer; color: var(--ink-soft);
     }
-    .bl-toggle:hover { background: #f5f5f5; }
+    .bl-toggle:hover { background: var(--line-soft); }
     .bl-toggle-collapsed {
       position: fixed; top: 12px; right: 12px; z-index: 50;
       width: 28px; height: 28px;
     }
-    .bl-empty { color: #999; font-size: 12px; padding: 8px 0; }
+    .bl-empty { color: var(--ink-faint); font-size: 12px; padding: 8px 0; }
     .bl-list { list-style: none; padding: 0; margin: 0; }
     .bl-list li {
-      padding: 6px 0; border-bottom: 1px solid #f5f5f5;
+      padding: 6px 0; border-bottom: 1px solid var(--line-soft);
       display: flex; flex-direction: column; gap: 2px;
     }
     .bl-list a {
-      color: #1D8BFF; text-decoration: none; font-weight: 500;
+      color: var(--accent); text-decoration: none; font-weight: 500;
       word-break: break-all;
     }
     .bl-list a:hover { text-decoration: underline; }
-    .bl-meta { color: #aaa; font-size: 11px; }
+    .bl-meta { color: var(--ink-faint); font-size: 11px; }
     @media (prefers-color-scheme: dark) {
-      .bl-panel {
-        background: #1a1a1a; border-left-color: #2a2a2a;
-        box-shadow: -1px 0 6px rgba(0,0,0,0.4);
-      }
-      .bl-header { border-bottom-color: #2a2a2a; }
-      .bl-title { color: #aaa; }
-      .bl-toggle { border-color: #333; color: #888; }
-      .bl-toggle:hover { background: #2a2a2a; color: #fff; }
-      .bl-empty { color: #666; }
-      .bl-list li { border-bottom-color: #2a2a2a; }
-      .bl-list a { color: #7ab8ff; }
-      .bl-meta { color: #666; }
+      .bl-panel { box-shadow: -1px 0 6px rgba(0,0,0,0.4); }
     }
   `;
   const style = document.createElement("style");
