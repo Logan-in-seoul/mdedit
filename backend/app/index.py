@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
-from app.fs import _is_excluded
+from app.fs import _extract_title, _is_excluded
 from app.schema import AppConfig, RootConfig, SearchHit, SearchResponse, TagEntry
 from app.tags import extract_tags
 
@@ -33,7 +34,8 @@ def _init_schema(db: sqlite3.Connection) -> None:
             path TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             mtime INTEGER NOT NULL,
-            size INTEGER NOT NULL
+            size INTEGER NOT NULL,
+            title TEXT
         );
         CREATE VIRTUAL TABLE IF NOT EXISTS lines_fts USING fts5(
             path UNINDEXED,
@@ -57,6 +59,17 @@ def _init_schema(db: sqlite3.Connection) -> None:
     db.commit()
 
 
+def _migrate_title(db: sqlite3.Connection) -> None:
+    """기존 DB에 title 컬럼이 없으면 추가하고, 다음 refresh()에서
+    재인덱싱되도록 mtime을 무효화한다. idempotent."""
+    cols = {row[1] for row in db.execute("PRAGMA table_info(files)").fetchall()}
+    if "title" not in cols:
+        with _DB_LOCK:
+            db.execute("ALTER TABLE files ADD COLUMN title TEXT")
+            db.execute("UPDATE files SET mtime = 0")
+            db.commit()
+
+
 def init_db(state_dir: Path) -> None:
     global _DB, _DB_PATH
     state_dir.mkdir(parents=True, exist_ok=True)
@@ -64,6 +77,7 @@ def init_db(state_dir: Path) -> None:
     _DB = _connect(_DB_PATH)
     _init_schema(_DB)
     _migrate_tags(_DB)
+    _migrate_title(_DB)
 
 
 def _migrate_tags(db: sqlite3.Connection) -> None:
@@ -152,8 +166,8 @@ def _index_file(db: sqlite3.Connection, root: RootConfig, path: Path) -> None:
         db.execute("DELETE FROM file_tags WHERE path = ?", (virtual,))
         db.execute("DELETE FROM links WHERE src = ?", (virtual,))
         db.execute(
-            "INSERT OR REPLACE INTO files (path, name, mtime, size) VALUES (?, ?, ?, ?)",
-            (virtual, path.name, int(stat.st_mtime), stat.st_size),
+            "INSERT OR REPLACE INTO files (path, name, mtime, size, title) VALUES (?, ?, ?, ?, ?)",
+            (virtual, path.name, int(stat.st_mtime), stat.st_size, _extract_title(text)),
         )
         db.execute(
             "INSERT INTO file_tags (path, tags) VALUES (?, ?)",
@@ -388,9 +402,11 @@ def search(
     fts_query = _escape_fts(needle)
     rows = db.execute(
         """
-        SELECT path, line_num, text,
-               highlight(lines_fts, 2, '<<MARK>>', '<<ENDMARK>>') AS hl
+        SELECT lines_fts.path, line_num, text,
+               highlight(lines_fts, 2, '<<MARK>>', '<<ENDMARK>>') AS hl,
+               rank, f.name, f.title, f.mtime
         FROM lines_fts
+        JOIN files AS f ON f.path = lines_fts.path
         WHERE lines_fts MATCH ?
         ORDER BY rank
         LIMIT ?
@@ -400,22 +416,40 @@ def search(
     if tag_paths is not None:
         rows = [r for r in rows if r[0] in tag_paths]
 
-    hits: list[SearchHit] = []
-    per_file: dict[str, int] = {}
+    # 파일 단위 그룹핑 + 점수 모델.
+    # bm25 rank(작을수록 좋음)에 제목/파일명/경로 매치와 최근성 부스트를 더해
+    # 파일 대표 점수(최소값)로 파일을 정렬하고, 파일 내 hit은 라인 순으로 보여준다.
+    # 짧은 스쳐가는 언급이 본문 문서보다 위에 뜨는 문제를 백엔드에서 해결한다.
+    needle_low = needle.lower()
+    now = time.time()
     total = 0
-    truncated = False
     pad = 60
+    groups: dict[str, dict] = {}  # path → {score, hits:[(line, SearchHit)]}
 
-    for path, line_num, text, hl in rows:
+    for path, line_num, text, hl, rank, name, title, mtime in rows:
         if hl is None or "<<MARK>>" not in hl:
             continue
         total += 1
-        cnt = per_file.get(path, 0)
-        if cnt >= max_per_file:
+
+        boost = 0.0
+        if title and needle_low in title.lower():
+            boost -= 5.0  # 제목 매치: 강한 부스트
+        if needle_low in (name or "").lower():
+            boost -= 3.0  # 파일명 매치
+        elif needle_low in path.lower():
+            boost -= 1.5  # 경로 매치
+        age_days = (now - mtime) / 86400 if mtime else 9999
+        if age_days <= 7:
+            boost -= 1.0  # 최근 수정 부스트
+        elif age_days <= 30:
+            boost -= 0.5
+        score = rank + boost
+
+        group = groups.setdefault(path, {"score": score, "hits": []})
+        group["score"] = min(group["score"], score)
+        if len(group["hits"]) >= max_per_file:
             continue
-        if len(hits) >= max_hits:
-            truncated = True
-            continue
+
         # Build snippet from hl: locate first match
         idx = hl.find("<<MARK>>")
         end = hl.find("<<ENDMARK>>", idx)
@@ -433,21 +467,30 @@ def search(
         match_start = len(prefix) + len(before_trim)
         match_end = match_start + len(match_text)
 
-        # Get name from files table
-        name_row = db.execute("SELECT name FROM files WHERE path = ?", (path,)).fetchone()
-        name = name_row[0] if name_row else path.rsplit("/", 1)[-1]
-
-        hits.append(
-            SearchHit(
-                path=path,
-                name=name,
-                line=line_num,
-                snippet=snippet,
-                match_start=match_start,
-                match_end=match_end,
+        group["hits"].append(
+            (
+                line_num,
+                SearchHit(
+                    path=path,
+                    name=name or path.rsplit("/", 1)[-1],
+                    line=line_num,
+                    snippet=snippet,
+                    match_start=match_start,
+                    match_end=match_end,
+                ),
             )
         )
-        per_file[path] = cnt + 1
+
+    hits: list[SearchHit] = []
+    truncated = False
+    for group in sorted(groups.values(), key=lambda g: g["score"]):
+        for _, hit in sorted(group["hits"], key=lambda h: h[0]):
+            if len(hits) >= max_hits:
+                truncated = True
+                break
+            hits.append(hit)
+        if truncated:
+            break
 
     return SearchResponse(query=query, total=total, truncated=truncated, hits=hits)
 
