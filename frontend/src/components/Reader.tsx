@@ -67,6 +67,12 @@ export function Reader({ path, scrollToLine }: Props) {
 
   return (
     <article className="reader">
+      {path.startsWith("ext://") && (
+        <div className="external-note" title={path.slice(6)}>
+          vault 밖 문서 — 검색·백링크에는 포함되지 않습니다
+          <span className="external-path">{path.slice(6)}</span>
+        </div>
+      )}
       {content.frontmatter && (
         <section className="frontmatter">
           <h3>frontmatter</h3>

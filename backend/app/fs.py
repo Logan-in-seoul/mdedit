@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
+import threading
 from pathlib import Path
 
 import frontmatter
@@ -63,6 +64,43 @@ def to_virtual_path(abs_path: str | Path, config: AppConfig) -> str:
     return f"{best[1].name}://{best[2]}"
 
 
+# ============ vault 밖 임시 열기 (ext://) ============
+# /api/open이 등록한 절대경로만 읽기를 허용한다 (임의 파일 노출 방지).
+# 인메모리·휘발성 — 인덱스/검색/백링크 대상이 아니며 재시작 시 사라진다.
+_EXTERNAL_FILES: set[str] = set()
+_EXTERNAL_LOCK = threading.Lock()
+
+EXTERNAL_SCHEME = "ext://"
+
+
+def register_external(abs_path: str | Path) -> str:
+    """roots 밖 .md를 임시 열람 대상으로 등록하고 ext:// 가상 경로를 반환한다."""
+    p = Path(abs_path).expanduser()
+    if not p.is_absolute():
+        raise FileNotFoundInVault(f"not an absolute path: {abs_path}")
+    p = p.resolve()
+    if p.suffix.lower() != ".md":
+        raise FileNotFoundInVault(f"not a markdown file: {abs_path}")
+    if not p.is_file():
+        raise FileNotFoundInVault(f"file not found: {abs_path}")
+    with _EXTERNAL_LOCK:
+        _EXTERNAL_FILES.add(str(p))
+    return f"{EXTERNAL_SCHEME}{p}"
+
+
+def resolve_external(virtual: str) -> Path:
+    """ext:// 가상 경로를 절대경로로 변환한다. 등록된 경로만 허용."""
+    abs_str = virtual[len(EXTERNAL_SCHEME):]
+    with _EXTERNAL_LOCK:
+        allowed = abs_str in _EXTERNAL_FILES
+    if not allowed:
+        raise FileNotFoundInVault(f"external file not registered: {virtual}")
+    p = Path(abs_str)
+    if not p.is_file():
+        raise FileNotFoundInVault(f"file not found: {virtual}")
+    return p
+
+
 def _extract_title(body: str) -> str | None:
     for line in body.splitlines():
         stripped = line.strip()
@@ -72,7 +110,10 @@ def _extract_title(body: str) -> str | None:
 
 
 def read_file(virtual: str, config: AppConfig) -> FileContent:
-    path = resolve_virtual_path(virtual, config)
+    if virtual.startswith(EXTERNAL_SCHEME):
+        path = resolve_external(virtual)
+    else:
+        path = resolve_virtual_path(virtual, config)
     if not path.is_file():
         raise FileNotFoundInVault(f"file not found: {virtual}")
     raw = path.read_text(encoding="utf-8")
