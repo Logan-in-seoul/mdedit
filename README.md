@@ -26,7 +26,7 @@ WSL에서 systemd를 쓰고 싶다면 `/etc/wsl.conf`에 `[boot]\nsystemd=true`�
 ```bash
 systemctl --user daemon-reload
 systemctl --user enable --now mdedit
-loginctl enable-linger logan
+loginctl enable-linger $USER
 ```
 
 ## 사용

@@ -1,12 +1,8 @@
 roots:
-  - name: common
-    path: /home/logan/workspace/common
-  - name: skills
-    path: /home/logan/.claude/skills
-  - name: memory
-    path: /home/logan/.claude/projects/-home-logan-workspace-common/memory
-  - name: tour
-    path: /home/logan/.claude/tour
+  - name: notes
+    path: /home/<user>/notes
+  - name: docs
+    path: /home/<user>/Documents/markdown
 
 exclude:
   - node_modules
