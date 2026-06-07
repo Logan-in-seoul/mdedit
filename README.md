@@ -43,6 +43,21 @@ source .venv/bin/activate
 python -m app
 ```
 
+## 데스크톱 앱 (macOS)
+
+브라우저 대신 네이티브 창으로 쓰고 싶으면 `mdedit.app`을 빌드한다.
+
+```bash
+./desktop/build.sh
+```
+
+스크립트가 venv 생성, 의존성 설치(pywebview·PyInstaller·백엔드), 프런트엔드 빌드, PyInstaller 번들, `.dmg` 생성까지 수행한다. 산출물은 `desktop/dist/mdedit.app`과 `desktop/dist/mdedit.dmg`. dmg를 열어 `mdedit.app`을 Applications로 드래그하면 설치 끝이다 (서명 없음 — 첫 실행 시 우클릭 → 열기).
+
+- Dock/Spotlight에서 실행하면 백엔드가 내장 스레드로 함께 뜨고, 창을 닫으면 같이 종료된다.
+- `localhost:8787`에 서버가 이미 떠 있으면 두 번째 서버를 띄우지 않고 재사용한다. 브라우저 접속도 기존대로 동작한다.
+- Finder에서 `.md` 파일을 "다음으로 열기 → mdedit"으로 열면 config roots와 대조해 해당 문서를 바로 연다. roots 밖 파일이면 열리지 않는다 (로그에 안내).
+- 데스크톱 로그: `~/.local/state/mdedit/desktop.log`
+
 ## 개발 모드
 
 프런트엔드 핫리로드가 필요하면 두 프로세스를 띄운다.
