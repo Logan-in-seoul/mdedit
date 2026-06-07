@@ -76,8 +76,8 @@ export interface BlockResponse {
   content: string;
 }
 
-async function json<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+async function json<T>(url: string, method = "GET"): Promise<T> {
+  const res = await fetch(url, { method });
   if (!res.ok) {
     throw new Error(`${url} returned ${res.status}`);
   }
@@ -115,6 +115,17 @@ export const api = {
   },
   tags: (limit = 500) =>
     json<TagEntry[]>(`/api/tags?limit=${limit}`),
+  starred: () => json<{ paths: string[] }>("/api/starred"),
+  star: (virtualPath: string) =>
+    json<{ ok: boolean }>(
+      `/api/starred?path=${encodeURIComponent(virtualPath)}`,
+      "PUT",
+    ),
+  unstar: (virtualPath: string) =>
+    json<{ ok: boolean }>(
+      `/api/starred?path=${encodeURIComponent(virtualPath)}`,
+      "DELETE",
+    ),
   graph: (virtualPath: string, depth = 1) =>
     json<GraphResponse>(
       `/api/graph?path=${encodeURIComponent(virtualPath)}&depth=${depth}`,

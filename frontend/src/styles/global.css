@@ -227,10 +227,52 @@ blockquote {
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
+  position: relative;
 }
 
 .flatlist-row:hover {
   background: #f4f4f5;
+}
+
+/* ============ 별표 고정 ============ */
+
+.flatlist-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  padding: 8px 8px 3px;
+  user-select: none;
+}
+
+.star-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+  color: #c4c4cc;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  opacity: 0;
+}
+
+.flatlist-row:hover .star-btn {
+  opacity: 1;
+}
+
+.star-btn:hover {
+  color: #f59e0b;
+}
+
+/* 별표된 항목은 항상 노출 */
+.star-btn.starred {
+  opacity: 1;
+  color: #f59e0b;
 }
 
 .flatlist-row.selected {
@@ -671,6 +713,10 @@ body:has(.outline-sidebar) .main-inner {
   .flatlist-meta { color: #9aa0aa; }
   .flatlist-filter { background: #1a1d23; color: #e6e8ec; border-color: #2a2e36; }
   .flatlist-row.selected { background: #243044; }
+  .flatlist-row:hover { background: #20242c; }
+  .flatlist-section-label { color: #6b7280; }
+  .star-btn { color: #4b5563; }
+  .star-btn:hover, .star-btn.starred { color: #fbbf24; }
   .brand { color: #9aa0aa; }
   .reader .body { color: #e6e8ec; }
   .reader .body h1, .reader .body h2, .reader .body h3 { color: #f1f5f9; }

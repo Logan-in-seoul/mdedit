@@ -54,6 +54,10 @@ def _init_schema(db: sqlite3.Connection) -> None:
             PRIMARY KEY (src, dst)
         );
         CREATE INDEX IF NOT EXISTS links_dst ON links(dst);
+        CREATE TABLE IF NOT EXISTS starred (
+            path TEXT PRIMARY KEY,
+            starred_at INTEGER NOT NULL
+        );
         """
     )
     db.commit()
@@ -223,10 +227,43 @@ def refresh(config: AppConfig) -> dict[str, int]:
                 db.execute("DELETE FROM lines_fts WHERE path = ?", (path,))
                 db.execute("DELETE FROM file_tags WHERE path = ?", (path,))
                 db.execute("DELETE FROM links WHERE src = ?", (path,))
+                db.execute("DELETE FROM starred WHERE path = ?", (path,))
                 deleted += 1
         db.commit()
 
     return {"indexed": indexed, "skipped": skipped, "deleted": deleted, "total": len(seen)}
+
+
+def list_starred() -> list[str]:
+    """별표 경로를 starred_at 역순(최근 별표가 위)으로 반환한다."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT path FROM starred ORDER BY starred_at DESC, path"
+    ).fetchall()
+    return [p for (p,) in rows]
+
+
+def star(path: str) -> bool:
+    """파일에 별표를 단다. files에 없는 경로면 False."""
+    db = get_db()
+    exists = db.execute("SELECT 1 FROM files WHERE path = ?", (path,)).fetchone()
+    if not exists:
+        return False
+    with _DB_LOCK:
+        db.execute(
+            "INSERT OR REPLACE INTO starred (path, starred_at) VALUES (?, ?)",
+            (path, int(time.time())),
+        )
+        db.commit()
+    return True
+
+
+def unstar(path: str) -> None:
+    """별표를 해제한다. 없어도 조용히 성공(idempotent)."""
+    db = get_db()
+    with _DB_LOCK:
+        db.execute("DELETE FROM starred WHERE path = ?", (path,))
+        db.commit()
 
 
 def _escape_fts(query: str) -> str:

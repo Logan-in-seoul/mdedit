@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api, FileEntry, SearchHit } from "../lib/api";
 import { TAG_SEARCH_EVENT, TagSearchDetail } from "./TagChip";
 import { WIKI_OPEN_EVENT, WikiOpenDetail } from "./WikiLink";
@@ -51,6 +51,8 @@ export function FlatList({ onSelect, selected }: Props) {
   const [searching, setSearching] = useState(false);
   // wiki-suggest: [[ 입력 후 파일명 필터
   const [wikiQuery, setWikiQuery] = useState("");
+  // 별표 경로 목록 (최근 별표 순 — 고정 섹션 순서)
+  const [starredPaths, setStarredPaths] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,7 +61,26 @@ export function FlatList({ onSelect, selected }: Props) {
       .filesFlat(1000)
       .then(setFiles)
       .catch((e) => setError(String(e)));
+    api
+      .starred()
+      .then((r) => setStarredPaths(r.paths))
+      .catch(() => {});
   }, []);
+
+  const toggleStar = (path: string, e: MouseEvent) => {
+    e.stopPropagation();
+    const isStarred = starredPaths.includes(path);
+    // 낙관적 갱신, 실패 시 서버 상태로 복원
+    setStarredPaths((prev) =>
+      isStarred ? prev.filter((p) => p !== path) : [path, ...prev],
+    );
+    (isStarred ? api.unstar(path) : api.star(path)).catch(() => {
+      api
+        .starred()
+        .then((r) => setStarredPaths(r.paths))
+        .catch(() => {});
+    });
+  };
 
   // tag: 검색 이벤트 수신 (TagChip 클릭)
   useEffect(() => {
@@ -188,6 +209,17 @@ export function FlatList({ onSelect, selected }: Props) {
     );
   }, [files, filter]);
 
+  const starredSet = useMemo(() => new Set(starredPaths), [starredPaths]);
+
+  // 고정 섹션: 별표 순서 유지, files에 있는 항목만
+  const pinnedFiles = useMemo(() => {
+    if (!files) return [];
+    const byPath = new Map(files.map((f) => [f.path, f]));
+    return starredPaths
+      .map((p) => byPath.get(p))
+      .filter((f): f is FileEntry => f != null);
+  }, [files, starredPaths]);
+
   // wiki-suggest 모드: [[ 이후 입력으로 파일 필터링
   const wikiSuggestFiles = useMemo(() => {
     if (!files || mode !== "wiki-suggest") return [];
@@ -203,6 +235,34 @@ export function FlatList({ onSelect, selected }: Props) {
 
   if (error) return <div className="placeholder">로드 실패: {error}</div>;
   if (!files) return <div className="placeholder">로딩 중…</div>;
+
+  const renderFileRow = (f: FileEntry, pinned: boolean) => {
+    const isStarred = starredSet.has(f.path);
+    return (
+      <div
+        key={`${pinned ? "pin:" : ""}${f.path}`}
+        className={`flatlist-row ${f.path === selected ? "selected" : ""}`}
+        onClick={() => onSelect(f.path)}
+        title={f.path}
+      >
+        <div className="flatlist-name">{f.title || f.name}</div>
+        <div className="flatlist-meta">
+          <span className="flatlist-time">{formatRelative(f.mtime)}</span>
+          <span className="flatlist-path">
+            {f.path.replace(/^[^:]+:\/\//, "").replace(/\/[^/]*$/, "")}
+          </span>
+        </div>
+        <button
+          className={`star-btn ${isStarred ? "starred" : ""}`}
+          onClick={(e) => toggleStar(f.path, e)}
+          title={isStarred ? "별표 해제" : "별표 — 최상단 고정"}
+          aria-label={isStarred ? "별표 해제" : "별표"}
+        >
+          {isStarred ? "★" : "☆"}
+        </button>
+      </div>
+    );
+  };
 
   const placeholder =
     files.length > 0
@@ -301,22 +361,17 @@ export function FlatList({ onSelect, selected }: Props) {
         </div>
       ) : (
         <div className="flatlist-items">
-          {filteredFiles.map((f) => (
-            <div
-              key={f.path}
-              className={`flatlist-row ${f.path === selected ? "selected" : ""}`}
-              onClick={() => onSelect(f.path)}
-              title={f.path}
-            >
-              <div className="flatlist-name">{f.title || f.name}</div>
-              <div className="flatlist-meta">
-                <span className="flatlist-time">{formatRelative(f.mtime)}</span>
-                <span className="flatlist-path">
-                  {f.path.replace(/^[^:]+:\/\//, "").replace(/\/[^/]*$/, "")}
-                </span>
-              </div>
-            </div>
-          ))}
+          {/* 고정 섹션: 필터 없을 때만. 필터/검색 중엔 결과를 가리지 않는다. */}
+          {!filter.trim() && pinnedFiles.length > 0 && (
+            <>
+              <div className="flatlist-section-label">★ 고정</div>
+              {pinnedFiles.map((f) => renderFileRow(f, true))}
+              <div className="flatlist-section-label">전체</div>
+            </>
+          )}
+          {filteredFiles
+            .filter((f) => filter.trim() !== "" || !starredSet.has(f.path))
+            .map((f) => renderFileRow(f, false))}
         </div>
       )}
     </div>
