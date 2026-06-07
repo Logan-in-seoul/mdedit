@@ -933,10 +933,7 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 /* 백링크·아웃라인 패널은 body 직속 독립 root라 body 클래스로 숨긴다. */
-body.reading-active #backlinks-root,
 body.reading-active #outline-host,
-body.reading-active .bl-panel,
-body.reading-active .bl-toggle,
 body.reading-active .outline-sidebar,
 body.reading-active .outline-toggle {
   display: none !important;
@@ -1011,10 +1008,7 @@ body.reading-active .main-inner {
   .reading-toggle,
   .memo-panel,
   .frontmatter,
-  #backlinks-root,
   #outline-host,
-  .bl-panel,
-  .bl-toggle,
   .outline-sidebar,
   .outline-toggle {
     display: none !important;

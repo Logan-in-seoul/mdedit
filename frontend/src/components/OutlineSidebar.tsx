@@ -9,10 +9,11 @@ import { extractFromDom, OutlineItem } from "../lib/outline";
 const OUTLINE_VISIBLE_KEY = "mdedit:outline:visible";
 
 function readInitialVisible(): boolean {
+  // 기본 표시 (v0.8) — 명시적으로 닫은 적 있을 때만 숨김
   try {
-    return localStorage.getItem(OUTLINE_VISIBLE_KEY) === "1";
+    return localStorage.getItem(OUTLINE_VISIBLE_KEY) !== "0";
   } catch {
-    return false;
+    return true;
   }
 }
 
