@@ -29,12 +29,15 @@ export function OutlineSidebar() {
   const [visible, setVisible] = useState<boolean>(() => readInitialVisible());
   const [items, setItems] = useState<OutlineItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // 문서가 열려 있는지 (.reader 존재) — 홈/피드 화면에서는 패널 자체를 숨긴다 (v0.8)
+  const [hasDoc, setHasDoc] = useState(false);
   const observerRef = useRef<MutationObserver | null>(null);
   const bodyRef = useRef<HTMLElement | null>(null);
 
   const refresh = useCallback(() => {
     const body = document.querySelector<HTMLElement>(".body");
     bodyRef.current = body;
+    setHasDoc(body != null);
     if (!body) {
       setItems([]);
       return;
@@ -61,9 +64,8 @@ export function OutlineSidebar() {
   }, []);
 
   // Observe the document for body element changes and content mutations.
+  // visible 여부와 무관하게 관찰 — hasDoc(문서 존재) 추적에도 쓰인다.
   useEffect(() => {
-    if (!visible) return;
-
     refresh();
 
     const root = document.body;
@@ -88,7 +90,7 @@ export function OutlineSidebar() {
       observerRef.current = null;
       window.clearInterval(interval);
     };
-  }, [visible, refresh]);
+  }, [refresh]);
 
   const handleClick = useCallback((item: OutlineItem) => {
     const body = bodyRef.current ?? document.querySelector<HTMLElement>(".body");
@@ -103,6 +105,9 @@ export function OutlineSidebar() {
     target.classList.add("outline-flash");
     window.setTimeout(() => target.classList.remove("outline-flash"), 1200);
   }, []);
+
+  // 문서가 없으면(홈/피드) 패널·토글 모두 숨김
+  if (!hasDoc) return null;
 
   if (!visible) {
     return (
