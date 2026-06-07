@@ -89,6 +89,35 @@ def tags(limit: int = Query(500)) -> list[TagEntry]:
         raise HTTPException(status_code=503, detail="index not ready")
 
 
+@app.get("/api/starred")
+def starred_list() -> dict:
+    """별표 경로 목록 (최근 별표 순)."""
+    try:
+        return {"paths": fts_index.list_starred()}
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+
+
+@app.put("/api/starred")
+def starred_add(path: str = Query(...)) -> dict:
+    try:
+        ok = fts_index.star(path)
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"file not indexed: {path}")
+    return {"ok": True, "path": path}
+
+
+@app.delete("/api/starred")
+def starred_remove(path: str = Query(...)) -> dict:
+    try:
+        fts_index.unstar(path)
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+    return {"ok": True, "path": path}
+
+
 @app.get("/api/index/refresh")
 def index_refresh() -> dict:
     try:
