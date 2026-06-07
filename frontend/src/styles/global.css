@@ -1,9 +1,50 @@
+/* ============ 디자인 토큰 (v0.6.0 — 세련된 리더) ============ */
 :root {
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "맑은 고딕",
     sans-serif;
   font-feature-settings: "tnum", "ss01";
   color-scheme: light dark;
   line-height: 1.7;
+
+  /* 색 — 라이트 */
+  --paper: #fbfbfa;        /* 본문 배경: 순백 대신 종이톤 */
+  --ink: #1c1e21;          /* 본문 텍스트: 순흑 대신 웜 블랙 */
+  --ink-strong: #121417;   /* 제목·강조 */
+  --ink-soft: #6e7178;     /* 메타·보조 */
+  --ink-faint: #9b9ea6;    /* 비활성·힌트 */
+  --accent: #2e66d0;       /* 링크·포커스 */
+  --accent-soft: #eaf0fb;  /* 액센트 배경 (hover·선택) */
+  --surface: #f4f4f2;      /* 사이드바·코드 배경 */
+  --surface-raised: #ffffff;
+  --line: #e8e8e5;         /* 경계선 */
+  --line-soft: #f0f0ed;
+  --mark-bg: #f6e6b6;      /* ==하이라이트== */
+  --mark-ink: #4a3500;
+
+  /* 타이포그래피 */
+  --measure: 646px;        /* 본문 측정폭 */
+  --body-size: 17px;
+  --body-leading: 1.78;
+  --body-tracking: -0.011em;
+  --heading-tracking: -0.02em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #15171a;
+    --ink: #e8eaed;
+    --ink-strong: #f4f6f8;
+    --ink-soft: #9aa0aa;
+    --ink-faint: #6b7078;
+    --accent: #7aa5f0;
+    --accent-soft: #1d2940;
+    --surface: #1c1f24;
+    --surface-raised: #1a1d22;
+    --line: #2a2d33;
+    --line-soft: #222529;
+    --mark-bg: #e0b94d;
+    --mark-ink: #241a00;
+  }
 }
 
 * {
@@ -12,8 +53,14 @@
 
 body {
   margin: 0;
-  background: #fafafa;
-  color: #1a1a1a;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink-strong);
 }
 
 .app {
@@ -25,19 +72,19 @@ body {
 }
 
 .sidebar {
-  border-right: 1px solid #e5e5e5;
+  border-right: 1px solid var(--line);
   padding: 16px;
-  background: #ffffff;
+  background: var(--surface);
   overflow-y: auto;
   min-height: 0;
 }
 
 .brand {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--ink-faint);
   margin: 0;
 }
 
@@ -49,46 +96,89 @@ body {
 }
 
 .main-inner {
-  padding: 40px;
-  max-width: 800px;
+  padding: 48px 40px 96px;
+  max-width: calc(var(--measure) + 80px);
   margin: 0 auto;
 }
 
 .placeholder {
-  color: #999;
+  color: var(--ink-faint);
   font-size: 14px;
 }
 
 pre {
   overflow-x: auto;
-  padding: 12px 16px;
-  border-radius: 6px;
-  background: #f4f4f5;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
   font-family: "JetBrains Mono", "D2Coding", Consolas, monospace;
   font-size: 13px;
+  line-height: 1.6;
 }
 
 code {
   font-family: "JetBrains Mono", "D2Coding", Consolas, monospace;
-  font-size: 0.92em;
+  font-size: 0.9em;
+}
+
+/* Shiki 코드 블록: 배경은 토큰으로 통일, 다크에선 --shiki-dark 변수로 전환 */
+pre.shiki {
+  background: var(--surface) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark, inherit) !important;
+    font-style: var(--shiki-dark-font-style, inherit);
+    font-weight: var(--shiki-dark-font-weight, inherit);
+  }
+}
+
+/* 인라인 코드만 (블록 안 제외) */
+:not(pre) > code {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.08em 0.35em;
 }
 
 table {
   display: block;
   overflow-x: auto;
   border-collapse: collapse;
+  font-size: 0.94em;
 }
 
 th, td {
-  border: 1px solid #e5e5e5;
-  padding: 6px 12px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 7px 14px;
+  text-align: left;
+}
+
+th {
+  border-bottom: 2px solid var(--line);
+  font-weight: 600;
+  color: var(--ink-strong);
 }
 
 blockquote {
-  border-left: 3px solid #d4d4d8;
+  border-left: 2px solid var(--accent);
   margin: 0;
-  padding: 0 16px;
-  color: #525252;
+  padding: 2px 18px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border-radius: 0 6px 6px 0;
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background: var(--line);
+  max-width: 120px;
+  margin: 2.4em auto;
 }
 
 .tree {
@@ -106,12 +196,12 @@ blockquote {
 }
 
 .tree-row:hover {
-  background: #f4f4f5;
+  background: var(--line-soft);
 }
 
 .tree-row.selected {
-  background: #e0e7ff;
-  color: #1e3a8a;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .mermaid {
@@ -127,38 +217,70 @@ blockquote {
 }
 
 .reader {
-  font-size: calc(16px * var(--reader-scale, 1));
+  font-size: calc(var(--body-size) * var(--reader-scale, 1));
+}
+
+.reader .body {
+  line-height: var(--body-leading);
+  letter-spacing: var(--body-tracking);
+  animation: body-fade 80ms ease-out;
+}
+
+@keyframes body-fade {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.reader .body a {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.reader .body a:hover {
+  text-decoration-color: var(--accent);
 }
 
 .frontmatter {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   padding: 12px 16px;
-  border-left: 3px solid #6366f1;
-  background: #eef2ff;
-  border-radius: 0 6px 6px 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
 }
 
 .frontmatter h3 {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #4338ca;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
 }
 
 .frontmatter pre {
   margin: 0;
   background: transparent;
+  border: none;
   padding: 0;
   font-size: 12px;
-  color: #1e1b4b;
+  color: var(--ink-soft);
 }
 
-.reader .body h1 { font-size: 28px; margin: 32px 0 16px; }
-.reader .body h2 { font-size: 22px; margin: 28px 0 14px; }
-.reader .body h3 { font-size: 18px; margin: 22px 0 10px; }
-.reader .body p, .reader .body ul, .reader .body ol { margin: 12px 0; }
-.reader .body li { margin: 4px 0; }
+.reader .body h1, .reader .body h2, .reader .body h3,
+.reader .body h4, .reader .body h5, .reader .body h6 {
+  letter-spacing: var(--heading-tracking);
+  color: var(--ink-strong);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.reader .body h1 { font-size: 1.65em; margin: 1.6em 0 0.6em; }
+.reader .body h2 { font-size: 1.3em; margin: 2.2em 0 0.55em; }
+.reader .body h3 { font-size: 1.1em; margin: 1.8em 0 0.5em; }
+.reader .body h1:first-child { margin-top: 0; }
+.reader .body p, .reader .body ul, .reader .body ol { margin: 0.9em 0; }
+.reader .body li { margin: 0.3em 0; }
+.reader .body li::marker { color: var(--ink-faint); }
 
 .sidebar-header {
   display: flex;
@@ -170,29 +292,30 @@ blockquote {
 .view-toggle {
   display: flex;
   gap: 0;
-  border: 1px solid #d4d4d8;
-  border-radius: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .view-toggle button {
   border: none;
-  background: #fff;
-  color: #52525b;
+  background: var(--surface-raised);
+  color: var(--ink-soft);
   font-size: 11px;
   font-weight: 500;
   padding: 4px 10px;
   cursor: pointer;
   font-family: inherit;
+  transition: background 120ms ease, color 120ms ease;
 }
 
 .view-toggle button.active {
-  background: #1e3a8a;
-  color: #fff;
+  background: var(--accent);
+  color: var(--paper);
 }
 
 .view-toggle button + button {
-  border-left: 1px solid #d4d4d8;
+  border-left: 1px solid var(--line);
 }
 
 .flatlist {
@@ -202,19 +325,19 @@ blockquote {
 }
 
 .flatlist-filter {
-  padding: 6px 10px;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   font-family: inherit;
   font-size: 12px;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--ink);
+  background: var(--surface-raised);
+  transition: border-color 120ms ease;
 }
 
 .flatlist-filter:focus {
   outline: none;
-  border-color: #6366f1;
-  background: #fff;
+  border-color: var(--accent);
 }
 
 .flatlist-items {
@@ -223,15 +346,17 @@ blockquote {
 }
 
 .flatlist-row {
-  padding: 6px 8px;
+  padding: 6px 8px 6px 10px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   user-select: none;
   position: relative;
+  border-left: 2px solid transparent;
+  transition: background 120ms ease;
 }
 
 .flatlist-row:hover {
-  background: #f4f4f5;
+  background: var(--line-soft);
 }
 
 /* ============ 별표 고정 ============ */
@@ -241,7 +366,7 @@ blockquote {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #a1a1aa;
+  color: var(--ink-faint);
   padding: 8px 8px 3px;
   user-select: none;
 }
@@ -254,11 +379,12 @@ blockquote {
   background: transparent;
   font-size: 14px;
   line-height: 1;
-  color: #c4c4cc;
+  color: var(--ink-faint);
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 3px;
   opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease;
 }
 
 .flatlist-row:hover .star-btn {
@@ -276,22 +402,28 @@ blockquote {
 }
 
 .flatlist-row.selected {
-  background: #e0e7ff;
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
 }
 
 .flatlist-name {
   font-size: 13px;
-  color: #1a1a1a;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.flatlist-row.selected .flatlist-name {
+  color: var(--ink-strong);
+  font-weight: 500;
 }
 
 .flatlist-meta {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #71717a;
+  color: var(--ink-soft);
   margin-top: 1px;
 }
 
@@ -323,8 +455,9 @@ blockquote {
 }
 
 .search-snippet mark {
-  background: #fef08a;
-  color: #713f12;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
   border-radius: 2px;
   padding: 0 1px;
 }
@@ -366,8 +499,8 @@ blockquote {
   right: 0;
   width: 240px;
   height: 100vh;
-  background: #ffffff;
-  border-left: 1px solid #e5e5e5;
+  background: var(--surface-raised);
+  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -380,8 +513,8 @@ blockquote {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid #ececec;
-  background: #fafafa;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
 }
 
 .outline-title {
@@ -389,12 +522,12 @@ blockquote {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .outline-count {
   font-size: 11px;
-  color: #999;
+  color: var(--ink-faint);
   margin-right: auto;
 }
 
@@ -403,15 +536,15 @@ blockquote {
   background: transparent;
   font-size: 16px;
   line-height: 1;
-  color: #999;
+  color: var(--ink-faint);
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 3px;
 }
 
 .outline-close:hover {
-  color: #333;
-  background: #ececec;
+  color: var(--ink);
+  background: var(--line-soft);
 }
 
 .outline-body {
@@ -421,7 +554,7 @@ blockquote {
 }
 
 .outline-empty {
-  color: #999;
+  color: var(--ink-faint);
   font-size: 12px;
   text-align: center;
   padding: 24px 12px;
@@ -449,27 +582,27 @@ blockquote {
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.4;
-  color: #333;
+  color: var(--ink);
   cursor: pointer;
   border-radius: 3px;
   border-left: 2px solid transparent;
 }
 
 .outline-link:hover {
-  background: #f3f3f3;
-  color: #111;
+  background: var(--line-soft);
+  color: var(--ink-strong);
 }
 
 .outline-active .outline-link {
-  background: #eef5ff;
-  color: #1d4ed8;
-  border-left-color: #1d8bff;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-left-color: var(--accent);
 }
 
 .outline-marker {
   font-size: 9px;
   font-weight: 700;
-  color: #999;
+  color: var(--ink-faint);
   letter-spacing: 0.04em;
   flex-shrink: 0;
   width: 18px;
@@ -496,11 +629,11 @@ blockquote {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid #d0d0d0;
-  background: #ffffff;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
   font-size: 14px;
   line-height: 1;
-  color: #666;
+  color: var(--ink-soft);
   cursor: pointer;
   z-index: 50;
   display: flex;
@@ -510,8 +643,8 @@ blockquote {
 }
 
 .outline-toggle:hover {
-  color: #1d8bff;
-  border-color: #1d8bff;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Reader gets right padding so the outline panel doesn't overlap content. */
@@ -530,37 +663,7 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 @media (prefers-color-scheme: dark) {
-  .outline-sidebar {
-    background: #1a1a1a;
-    border-left-color: #2a2a2a;
-    box-shadow: -1px 0 6px rgba(0, 0, 0, 0.4);
-  }
-  .outline-header {
-    background: #161616;
-    border-bottom-color: #2a2a2a;
-  }
-  .outline-title { color: #aaa; }
-  .outline-count { color: #777; }
-  .outline-close { color: #888; }
-  .outline-close:hover { color: #fff; background: #2a2a2a; }
-  .outline-link { color: #d0d0d0; }
-  .outline-link:hover { background: #232323; color: #fff; }
-  .outline-active .outline-link {
-    background: #1a2a44;
-    color: #7ab8ff;
-    border-left-color: #4da3ff;
-  }
-  .outline-marker { color: #666; }
-  .outline-empty { color: #666; }
-  .outline-toggle {
-    background: #1a1a1a;
-    border-color: #333;
-    color: #aaa;
-  }
-  .outline-toggle:hover {
-    color: #4da3ff;
-    border-color: #4da3ff;
-  }
+  .outline-sidebar { box-shadow: -1px 0 6px rgba(0, 0, 0, 0.4); }
 }
 
 /* D-4: 검색 결과 라인 점프 하이라이트 */
@@ -584,7 +687,7 @@ body:has(.outline-sidebar) .main-inner {
   margin: 0;
   font: inherit;
   font-size: inherit;
-  color: #1D8BFF;
+  color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -594,13 +697,13 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 .wiki-link:hover {
-  background: #e8f3ff;
+  background: var(--accent-soft);
   text-decoration: none;
 }
 
 /* 로딩 중: 점선 밑줄 */
 .wiki-link.wiki-link-loading {
-  color: #93c5fd;
+  color: var(--ink-faint);
   text-decoration-style: dotted;
   cursor: wait;
 }
@@ -614,15 +717,14 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 @media (prefers-color-scheme: dark) {
-  .wiki-link:hover { background: #1a2a44; }
-  .wiki-suggest-hint { border-bottom-color: #2a2a2a; }
+  .wiki-suggest-hint { border-bottom-color: var(--line); }
 }
 
 /* wiki-suggest 드롭다운 힌트 */
 .wiki-suggest-hint {
   font-size: 11px;
   font-weight: 600;
-  color: #1D8BFF;
+  color: var(--accent);
   letter-spacing: 0.04em;
   padding: 4px 0 8px;
   border-bottom: 1px solid #e5e5e5;
@@ -634,7 +736,7 @@ body:has(.outline-sidebar) .main-inner {
 /* 볼드 = 실제로 말할 핵심 줄. 굵기 + 또렷한 텍스트색. */
 .reader .body strong {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink-strong);
 }
 
 .reader .body em {
@@ -643,8 +745,8 @@ body:has(.outline-sidebar) .main-inner {
 
 /* ==하이라이트== — 단색 형광. 검색 스니펫 mark와 분리해 더 진하게. */
 .reader .body mark {
-  background: #ffe89a;
-  color: #4a3500;
+  background: var(--mark-bg);
+  color: var(--mark-ink);
   border-radius: 3px;
   padding: 0 3px;
   box-decoration-break: clone;
@@ -689,7 +791,7 @@ body:has(.outline-sidebar) .main-inner {
 /* 분기 블록 — 좌측 테두리 + 틴트. "만약 …하면:" / "상대가 …하면:" */
 .reader .body p.scr-branch,
 .reader .body li.scr-branch {
-  border-left: 3px solid #1D8BFF;
+  border-left: 3px solid var(--accent);
   background: #f0f7ff;
   color: #0f243f;
   padding: 8px 14px;
@@ -704,31 +806,13 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* 다크 모드 기본 표면·글자색. 이게 없으면 본문 배경이 밝은 채로 남아
-     strong(#f1f5f9) 같은 밝은 글자가 흰 배경에 묻혀 안 보인다. */
-  body { background: #14171c; color: #e6e8ec; }
-  .sidebar { background: #1a1d23; border-right-color: #2a2e36; }
-  .frontmatter { background: #1b2030; }
-  .flatlist-name { color: #e6e8ec; }
-  .flatlist-meta { color: #9aa0aa; }
-  .flatlist-filter { background: #1a1d23; color: #e6e8ec; border-color: #2a2e36; }
-  .flatlist-row.selected { background: #243044; }
-  .flatlist-row:hover { background: #20242c; }
-  .flatlist-section-label { color: #6b7280; }
-  .star-btn { color: #4b5563; }
+  /* 기본 표면·글자색·flatlist·reader 본문은 :root 다크 토큰이 처리한다.
+     여기엔 토큰으로 환원되지 않는 다크 전용 보정만 남긴다. */
   .star-btn:hover, .star-btn.starred { color: #fbbf24; }
-  .brand { color: #9aa0aa; }
-  .reader .body { color: #e6e8ec; }
-  .reader .body h1, .reader .body h2, .reader .body h3 { color: #f1f5f9; }
-  .reader .body strong { color: #f1f5f9; }
-  .reader .body mark {
-    background: #e0b94d;
-    color: #241a00;
-  }
   .reader .body p.scr-en { color: #a8aeb8; }
   .reader .body p.scr-branch,
   .reader .body li.scr-branch {
-    border-left-color: #4da3ff;
+    border-left-color: var(--accent);
     background: #14243d;
     color: #e8eff9;
   }
@@ -762,8 +846,8 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 .reading-toggle:hover {
-  border-color: #1D8BFF;
-  color: #1D8BFF;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* 읽기 모드: 사이드바·메타·패널 숨기고 본문만 크게 */
@@ -843,7 +927,7 @@ body.reading-active .main-inner {
 
 .reading-toolbar button:hover {
   background: #eef5ff;
-  color: #1D8BFF;
+  color: var(--accent);
 }
 
 .reading-scale {
@@ -861,10 +945,10 @@ body.reading-active .main-inner {
 
 @media (prefers-color-scheme: dark) {
   .reading-toggle { background: #1a1a1a; border-color: #333; color: #aaa; }
-  .reading-toggle:hover { border-color: #4da3ff; color: #4da3ff; }
+  .reading-toggle:hover { border-color: var(--accent); color: var(--accent); }
   .reading-toolbar { background: rgba(26, 26, 26, 0.92); border-color: #333; }
   .reading-toolbar button { color: #aaa; }
-  .reading-toolbar button:hover { background: #1a2a44; color: #4da3ff; }
+  .reading-toolbar button:hover { background: var(--accent-soft); color: var(--accent); }
   .reading-scale { color: #888; }
   .reading-toolbar .reading-exit { color: #fbbf24; }
 }

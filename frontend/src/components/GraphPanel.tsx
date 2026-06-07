@@ -108,8 +108,8 @@ function GraphPanel() {
         bottom: "16px",
         right: "16px",
         width: "340px",
-        background: "var(--color-surface, #1e1e2e)",
-        border: "1px solid var(--color-border, #333)",
+        background: "var(--surface-raised)",
+        border: "1px solid var(--line)",
         borderRadius: "8px",
         zIndex: 200,
         overflow: "hidden",
@@ -118,15 +118,15 @@ function GraphPanel() {
     >
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "8px 12px", borderBottom: "1px solid var(--color-border, #333)",
-        fontSize: "12px", color: "var(--color-text-muted, #888)",
+        padding: "8px 12px", borderBottom: "1px solid var(--line)",
+        fontSize: "12px", color: "var(--ink-soft)",
       }}>
         <span>그래프 뷰</span>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button
             onClick={() => setDepth(depth === 1 ? 2 : 1)}
             style={{ fontSize: "11px", padding: "2px 6px", borderRadius: "4px",
-              border: "1px solid var(--color-border, #444)", background: "transparent",
+              border: "1px solid var(--line)", background: "transparent",
               color: "inherit", cursor: "pointer" }}
           >
             {depth}hop
