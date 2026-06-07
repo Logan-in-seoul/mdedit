@@ -92,7 +92,7 @@ export const api = {
     const res = await json<FileContent>(
       `/api/file?path=${encodeURIComponent(virtualPath)}`,
     );
-    // notify listeners (BacklinksPanel) which note is now open
+    // notify listeners (GraphPanel) which note is now open
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("mdedit:note-opened", { detail: { path: virtualPath } }),
@@ -146,5 +146,5 @@ export const api = {
 };
 
 // side-effect: mount panels as second React roots — dynamic to keep main chunk lean.
-void import("../components/BacklinksPanel");
+// BacklinksPanel은 v0.8에서 제거 — 우측은 개요(OutlineSidebar)가 기본.
 void import("../components/GraphPanel");
