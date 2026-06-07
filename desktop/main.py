@@ -117,7 +117,10 @@ def _run_server(config, port: int) -> None:
     from app.main import app as fastapi_app, set_config
 
     set_config(config)
-    state_dir = Path.home() / ".local" / "share" / "mdedit"
+    state_env = os.environ.get("MDEDIT_STATE_DIR")
+    state_dir = (
+        Path(state_env) if state_env else Path.home() / ".local" / "share" / "mdedit"
+    )
     fts_index.init_db(state_dir)
 
     def _background_index() -> None:
