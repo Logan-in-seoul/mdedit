@@ -268,6 +268,230 @@ hr {
   text-decoration-color: var(--accent);
 }
 
+/* ============ Quick Switcher (⌘K, v0.8) ============ */
+
+.qs-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 14vh;
+}
+
+.qs-modal {
+  width: min(560px, 90vw);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.qs-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.qs-list {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.qs-empty {
+  padding: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.qs-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qs-item.active {
+  background: var(--accent-soft);
+}
+
+.qs-item-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qs-label {
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qs-item.active .qs-label {
+  color: var(--ink-strong);
+  font-weight: 500;
+}
+
+.qs-detail {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.qs-snippet {
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.qs-snippet mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.qs-hint {
+  padding: 8px 14px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
+/* ============ 최근 활동 피드 (v0.8 홈) ============ */
+
+.brand-home {
+  cursor: pointer;
+}
+
+.brand-home:hover {
+  color: var(--accent);
+}
+
+.feed-title {
+  font-size: 1.3em;
+  letter-spacing: var(--heading-tracking);
+  color: var(--ink-strong);
+  font-weight: 650;
+  margin: 0 0 1em;
+}
+
+.feed-resume {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface);
+  cursor: pointer;
+  margin-bottom: 24px;
+  min-width: 0;
+}
+
+.feed-resume:hover {
+  border-color: var(--accent);
+}
+
+.feed-resume-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.feed-resume-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-resume-path {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.feed-group {
+  margin-bottom: 22px;
+}
+
+.feed-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 6px;
+}
+
+.feed-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 0 -10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.feed-row:hover {
+  background: var(--line-soft);
+}
+
+.feed-name {
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 4px;
+  padding: 0 5px;
+  flex-shrink: 0;
+}
+
+.feed-meta {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 /* vault 밖 문서(ext://) 안내 배지 */
 .external-note {
   margin-bottom: 20px;
