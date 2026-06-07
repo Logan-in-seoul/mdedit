@@ -146,6 +146,14 @@ def resolve(title: str = Query(...)) -> dict:
     return {"path": path}
 
 
+@app.get("/api/update-check")
+def update_check() -> dict:
+    """GitHub 최신 릴리스와 현재 버전 비교. 오프라인이면 조용히 false."""
+    from app import update
+
+    return update.check(app.version)
+
+
 @app.get("/api/config")
 def config() -> dict:
     cfg = get_config()

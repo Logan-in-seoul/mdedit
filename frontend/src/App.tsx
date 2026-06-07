@@ -2,15 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import { FileTree } from "./components/FileTree";
 import { FlatList } from "./components/FlatList";
 import { Reader } from "./components/Reader";
+import { api } from "./lib/api";
 import { useDesktopOpen } from "./lib/useDesktopOpen";
 
 type ViewMode = "flat" | "tree";
+
+interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  update_available: boolean;
+  url: string;
+}
 
 export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [mode, setMode] = useState<ViewMode>("flat");
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const mainRef = useRef<HTMLElement>(null);
+
+  // 업데이트 체크 — 실패(오프라인)는 조용히 무시
+  useEffect(() => {
+    api.updateCheck().then(setUpdate).catch(() => {});
+  }, []);
 
   // 문서 전환 시 우측 패널을 맨 위로. 라인 점프는 Reader가 렌더 후 수행하므로 덮어쓰지 않는다.
   useEffect(() => {
@@ -55,6 +69,22 @@ export default function App() {
           <FlatList onSelect={handleSelect} selected={selected} />
         ) : (
           <FileTree onSelect={(p) => handleSelect(p)} selected={selected} />
+        )}
+        {update && (
+          <div className="sidebar-footer">
+            <span className="app-version">v{update.current}</span>
+            {update.update_available && update.latest && (
+              <a
+                className="update-badge"
+                href={update.url}
+                target="_blank"
+                rel="noreferrer"
+                title="새 버전이 있습니다"
+              >
+                {update.latest.replace(/^v/, "v")} 업데이트 ↗
+              </a>
+            )}
+          </div>
         )}
       </aside>
       <main className="main" ref={mainRef}>

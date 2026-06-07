@@ -115,6 +115,13 @@ export const api = {
   },
   tags: (limit = 500) =>
     json<TagEntry[]>(`/api/tags?limit=${limit}`),
+  updateCheck: () =>
+    json<{
+      current: string;
+      latest: string | null;
+      update_available: boolean;
+      url: string;
+    }>("/api/update-check"),
   starred: () => json<{ paths: string[] }>("/api/starred"),
   star: (virtualPath: string) =>
     json<{ ok: boolean }>(
