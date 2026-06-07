@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { FileTree } from "./components/FileTree";
 import { FlatList } from "./components/FlatList";
 import { Reader } from "./components/Reader";
+import { useDesktopOpen } from "./lib/useDesktopOpen";
 
 type ViewMode = "flat" | "tree";
 
@@ -26,6 +27,9 @@ export default function App() {
       setScrollToLine(line);
     }
   };
+
+  // 데스크톱(pywebview) 셸: Finder .md 더블클릭 열기 요청 폴링
+  useDesktopOpen(handleSelect);
 
   return (
     <div className="app">
