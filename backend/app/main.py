@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -5,10 +6,13 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.fs import FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file
+from app.fs import (
+    FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file,
+    to_virtual_path,
+)
 from app.schema import (
     AppConfig, BlockResponse, EmbedResponse, FileContent, FileEntry, FileNode,
-    GraphResponse, SearchResponse, TagEntry,
+    GraphResponse, OpenRequest, SearchResponse, TagEntry,
 )
 import app.index as fts_index
 from app.wikilinks import resolve_title
@@ -149,6 +153,34 @@ def config() -> dict:
         "roots": [{"name": r.name} for r in cfg.roots],
         "server": {"host": cfg.server.host, "port": cfg.server.port},
     }
+
+
+# 데스크톱 앱(Finder .md 더블클릭)에서 전달된 "열기 대기" 경로.
+# POST /api/open이 채우고, GET /api/open/pending이 반환하며 비운다.
+_pending_open: str | None = None
+_pending_open_lock = threading.Lock()
+
+
+@app.post("/api/open")
+def open_file(req: OpenRequest) -> dict:
+    """절대 경로를 가상 경로로 변환해 pending open으로 저장한다."""
+    try:
+        virtual = to_virtual_path(req.abs_path, get_config())
+    except FileNotFoundInVault as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    global _pending_open
+    with _pending_open_lock:
+        _pending_open = virtual
+    return {"path": virtual}
+
+
+@app.get("/api/open/pending")
+def open_pending() -> dict:
+    """pending open 경로를 반환하고 비운다 (프론트엔드 폴링용)."""
+    global _pending_open
+    with _pending_open_lock:
+        virtual, _pending_open = _pending_open, None
+    return {"path": virtual}
 
 
 def _read_file_content(path: str) -> FileContent | None:
