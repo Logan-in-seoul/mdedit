@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.fs import (
     FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file,
-    to_virtual_path,
+    register_external, to_virtual_path,
 )
 from app.schema import (
     AppConfig, BlockResponse, EmbedResponse, FileContent, FileEntry, FileNode,
@@ -163,11 +163,17 @@ _pending_open_lock = threading.Lock()
 
 @app.post("/api/open")
 def open_file(req: OpenRequest) -> dict:
-    """절대 경로를 가상 경로로 변환해 pending open으로 저장한다."""
+    """절대 경로를 가상 경로로 변환해 pending open으로 저장한다.
+
+    roots 밖 .md는 ext:// 임시 열람으로 등록한다 (v0.7).
+    """
     try:
         virtual = to_virtual_path(req.abs_path, get_config())
-    except FileNotFoundInVault as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FileNotFoundInVault:
+        try:
+            virtual = register_external(req.abs_path)
+        except FileNotFoundInVault as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
     global _pending_open
     with _pending_open_lock:
         _pending_open = virtual

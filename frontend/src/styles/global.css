@@ -241,6 +241,30 @@ hr {
   text-decoration-color: var(--accent);
 }
 
+/* vault 밖 문서(ext://) 안내 배지 */
+.external-note {
+  margin-bottom: 20px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  background: var(--surface);
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.external-note .external-path {
+  font-family: "JetBrains Mono", "D2Coding", Consolas, monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .frontmatter {
   margin-bottom: 28px;
   padding: 12px 16px;

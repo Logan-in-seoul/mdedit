@@ -115,14 +115,15 @@ def test_open_pending_empty_by_default(open_client: TestClient):
     assert open_client.get("/api/open/pending").json() == {"path": None}
 
 
-def test_open_endpoint_404_for_path_outside_roots(open_client: TestClient, tmp_path: Path):
+def test_open_endpoint_registers_external_for_path_outside_roots(
+    open_client: TestClient, tmp_path: Path
+):
+    """v0.7: roots 밖 .md는 404 대신 ext:// 임시 열람으로 등록된다."""
     outsider = tmp_path / "outside.md"
     outsider.write_text("# out", encoding="utf-8")
     response = open_client.post("/api/open", json={"abs_path": str(outsider)})
-    assert response.status_code == 404
-    assert "outside all configured roots" in response.json()["detail"]
-    # 실패한 open은 pending을 만들지 않는다
-    assert open_client.get("/api/open/pending").json() == {"path": None}
+    assert response.status_code == 200
+    assert response.json()["path"] == f"ext://{outsider.resolve()}"
 
 
 def test_open_endpoint_404_for_missing_file(open_client: TestClient, tmp_path: Path):
