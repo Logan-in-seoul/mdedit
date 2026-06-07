@@ -1,7 +1,7 @@
 [project]
 name = "mdedit"
-version = "0.1.0"
-description = "Logan 전용 로컬 MD 워크스페이스"
+version = "0.5.0"
+description = "로컬 마크다운 워크스페이스 — FTS 검색, 위키링크, 그래프 뷰"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
