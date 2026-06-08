@@ -53,15 +53,45 @@ function TreeNode({
   );
 }
 
+// 모듈 레벨 캐시 (ISSUE-002): /api/tree는 vault 전체 FS 워크라 8~16초 걸린다.
+// All↔Tree 토글마다 컴포넌트가 remount되며 재요청하던 것을 세션당 1회로 줄인다.
+// 새 파일 반영은 페이지 새로고침 시점에 따라간다.
+let treeCache: FileNode[] | null = null;
+let treePromise: Promise<FileNode[]> | null = null;
+
+function loadTree(): Promise<FileNode[]> {
+  if (treeCache) return Promise.resolve(treeCache);
+  if (!treePromise) {
+    treePromise = api
+      .tree()
+      .then((t) => {
+        treeCache = t;
+        return t;
+      })
+      .catch((e) => {
+        treePromise = null; // 실패 시 다음 mount에서 재시도
+        throw e;
+      });
+  }
+  return treePromise;
+}
+
 export function FileTree({ onSelect, selected }: Props) {
-  const [tree, setTree] = useState<FileNode[] | null>(null);
+  const [tree, setTree] = useState<FileNode[] | null>(treeCache);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api
-      .tree()
-      .then(setTree)
-      .catch((e) => setError(String(e)));
+    let alive = true;
+    loadTree()
+      .then((t) => {
+        if (alive) setTree(t);
+      })
+      .catch((e) => {
+        if (alive) setError(String(e));
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   if (error) return <div className="placeholder">트리 로드 실패: {error}</div>;
