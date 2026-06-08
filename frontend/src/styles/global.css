@@ -22,7 +22,7 @@
   --mark-ink: #4a3500;
 
   /* 타이포그래피 */
-  --measure: 646px;        /* 본문 측정폭 */
+  --measure: 800px;        /* 본문 측정폭 — 646px은 한글 기준 너무 좁아 확대 (2026-06-08) */
   --body-size: 17px;
   --body-leading: 1.78;
   --body-tracking: -0.011em;
