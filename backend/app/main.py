@@ -95,9 +95,12 @@ def tags(limit: int = Query(500)) -> list[TagEntry]:
 
 @app.get("/api/starred")
 def starred_list() -> dict:
-    """별표 경로 목록 (최근 별표 순)."""
+    """별표 경로 목록 (최근 별표 순). files는 고정 섹션 렌더용 메타데이터 동봉."""
     try:
-        return {"paths": fts_index.list_starred()}
+        return {
+            "paths": fts_index.list_starred(),
+            "files": fts_index.list_starred_files(),
+        }
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
 

@@ -73,13 +73,14 @@ class TestStarredApi:
         assert res.json()["ok"] is True
 
         res = client.get("/api/starred")
-        assert res.json() == {"paths": ["common://alpha.md"]}
+        # v0.8.1: files 메타데이터 동봉 (ISSUE-001) — paths contract는 유지
+        assert res.json()["paths"] == ["common://alpha.md"]
 
         res = client.delete("/api/starred", params={"path": "common://alpha.md"})
         assert res.status_code == 200
 
         res = client.get("/api/starred")
-        assert res.json() == {"paths": []}
+        assert res.json()["paths"] == []
 
     def test_put_unknown_path_404(self, client: TestClient):
         res = client.put("/api/starred", params={"path": "common://nope.md"})

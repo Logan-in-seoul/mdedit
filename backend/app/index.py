@@ -243,6 +243,26 @@ def list_starred() -> list[str]:
     return [p for (p,) in rows]
 
 
+def list_starred_files() -> list[dict]:
+    """별표 파일을 files 메타데이터와 JOIN해 starred_at 역순으로 반환한다.
+
+    최근 수정 목록(files_flat limit)에 없는 오래된 별표 파일도
+    고정 섹션에 그릴 수 있도록 전체 메타데이터를 제공한다.
+    """
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT f.path, f.name, f.mtime, f.size, f.title
+        FROM starred s JOIN files f ON f.path = s.path
+        ORDER BY s.starred_at DESC, s.path
+        """
+    ).fetchall()
+    return [
+        {"path": p, "name": n, "mtime": m, "size": sz, "title": t}
+        for (p, n, m, sz, t) in rows
+    ]
+
+
 def star(path: str) -> bool:
     """파일에 별표를 단다. files에 없는 경로면 False."""
     db = get_db()

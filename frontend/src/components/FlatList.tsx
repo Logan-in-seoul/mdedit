@@ -53,6 +53,8 @@ export function FlatList({ onSelect, selected }: Props) {
   const [wikiQuery, setWikiQuery] = useState("");
   // 별표 경로 목록 (최근 별표 순 — 고정 섹션 순서)
   const [starredPaths, setStarredPaths] = useState<string[]>([]);
+  // 별표 파일 메타데이터 — 최근 목록(files) 밖의 오래된 별표도 고정 섹션에 그린다
+  const [starredFiles, setStarredFiles] = useState<FileEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -63,7 +65,10 @@ export function FlatList({ onSelect, selected }: Props) {
       .catch((e) => setError(String(e)));
     api
       .starred()
-      .then((r) => setStarredPaths(r.paths))
+      .then((r) => {
+        setStarredPaths(r.paths);
+        setStarredFiles(r.files ?? []);
+      })
       .catch(() => {});
   }, []);
 
@@ -77,7 +82,10 @@ export function FlatList({ onSelect, selected }: Props) {
     (isStarred ? api.unstar(path) : api.star(path)).catch(() => {
       api
         .starred()
-        .then((r) => setStarredPaths(r.paths))
+        .then((r) => {
+          setStarredPaths(r.paths);
+          setStarredFiles(r.files ?? []);
+        })
         .catch(() => {});
     });
   };
@@ -201,14 +209,15 @@ export function FlatList({ onSelect, selected }: Props) {
 
   const starredSet = useMemo(() => new Set(starredPaths), [starredPaths]);
 
-  // 고정 섹션: 별표 순서 유지, files에 있는 항목만
+  // 고정 섹션: 별표 순서 유지. 최근 목록(files) 우선, 밖이면 starredFiles 메타데이터로 그린다.
   const pinnedFiles = useMemo(() => {
     if (!files) return [];
     const byPath = new Map(files.map((f) => [f.path, f]));
+    const starredByPath = new Map(starredFiles.map((f) => [f.path, f]));
     return starredPaths
-      .map((p) => byPath.get(p))
+      .map((p) => byPath.get(p) ?? starredByPath.get(p))
       .filter((f): f is FileEntry => f != null);
-  }, [files, starredPaths]);
+  }, [files, starredPaths, starredFiles]);
 
   // wiki-suggest 모드: [[ 이후 입력으로 파일 필터링
   const wikiSuggestFiles = useMemo(() => {

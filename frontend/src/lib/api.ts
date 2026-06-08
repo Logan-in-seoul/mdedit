@@ -133,7 +133,8 @@ export const api = {
       update_available: boolean;
       url: string;
     }>("/api/update-check"),
-  starred: () => json<{ paths: string[] }>("/api/starred"),
+  starred: () =>
+    json<{ paths: string[]; files?: FileEntry[] }>("/api/starred"),
   star: (virtualPath: string) =>
     json<{ ok: boolean }>(
       `/api/starred?path=${encodeURIComponent(virtualPath)}`,
