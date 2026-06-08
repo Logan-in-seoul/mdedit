@@ -17,6 +17,7 @@ import rehypeReact from "rehype-react";
 import { MermaidBlock } from "../components/MermaidBlock";
 import { rehypeTagChips, TagChip } from "../components/TagChip";
 import { rehypeWikiLinks, WikiLink, resolvePath } from "../components/WikiLink";
+import { rehypeHighlight, rehypeScrSemantics } from "./scr-plugins";
 import { EmbedBlock } from "../components/EmbedBlock";
 import { BlockRef } from "../components/BlockRef";
 import type { Plugin } from "unified";
@@ -95,6 +96,8 @@ const processor = unified()
   .use(rehypeKatex)
   .use(rehypeTagChips)
   .use(rehypeWikiLinks)
+  .use(rehypeScrSemantics)
+  .use(rehypeHighlight)
   .use(rehypeReact, {
     Fragment,
     jsx,
