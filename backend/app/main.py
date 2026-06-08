@@ -109,6 +109,10 @@ def starred_list() -> dict:
 def starred_add(path: str = Query(...)) -> dict:
     try:
         ok = fts_index.star(path)
+        if not ok:
+            # 마지막 refresh 이후 생성된 파일 — 디스크에 실존하면 즉석 인덱싱 후 재시도
+            if fts_index.index_single(path, get_config()):
+                ok = fts_index.star(path)
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
     if not ok:

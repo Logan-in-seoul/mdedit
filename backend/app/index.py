@@ -5,6 +5,7 @@ mtime 비교로 변경된 파일만 재인덱싱하므로 시작 시 첫 빌드 
 """
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
 import time
@@ -220,6 +221,23 @@ def refresh(config: AppConfig) -> dict[str, int]:
     # delete records for files no longer present
     cur = db.execute("SELECT path FROM files").fetchall()
     deleted = 0
+    # 대량 삭제 가드 (ISSUE-005): walk 결과가 기존 인덱스의 절반 미만이면
+    # 설정 오류·부분 walk·동시 writer를 의심하고 cleanup을 건너뛴다.
+    # 정상 vault에서 한 번에 절반 이상이 사라지는 일은 없다 — starred까지
+    # 연쇄 삭제되므로 잘못 지우면 복구 불가.
+    if len(cur) > 100 and len(seen) < len(cur) * 0.5:
+        logging.getLogger("mdedit.index").warning(
+            "refresh cleanup skipped: walked %d files but index has %d "
+            "(suspiciously small walk — config/race?)",
+            len(seen),
+            len(cur),
+        )
+        return {
+            "indexed": indexed,
+            "skipped": skipped,
+            "deleted": 0,
+            "total": len(seen),
+        }
     with _DB_LOCK:
         for (path,) in cur:
             if path not in seen:
@@ -261,6 +279,29 @@ def list_starred_files() -> list[dict]:
         {"path": p, "name": n, "mtime": m, "size": sz, "title": t}
         for (p, n, m, sz, t) in rows
     ]
+
+
+def index_single(virtual: str, config: "AppConfig") -> bool:
+    """가상 경로 하나를 즉석 인덱싱한다. 디스크에 실존하는 .md면 True.
+
+    인덱스 refresh(startup·수동) 이후 생성된 파일은 files에 없어서
+    star가 404로 조용히 실패했다(ISSUE-004). 디스크 실측 후 단건 인덱싱.
+    """
+    if "://" not in virtual:
+        return False
+    root_name, rel = virtual.split("://", 1)
+    root = next((r for r in config.roots if r.name == root_name), None)
+    if root is None:
+        return False
+    disk_path = (Path(root.path) / rel).resolve()
+    # 루트 밖 경로 차단
+    if not str(disk_path).startswith(str(Path(root.path).resolve())):
+        return False
+    if not (disk_path.is_file() and disk_path.suffix == ".md"):
+        return False
+    # _index_file이 내부에서 _DB_LOCK을 잡고 commit까지 한다 (여기서 잡으면 데드락)
+    _index_file(get_db(), root, disk_path)
+    return True
 
 
 def star(path: str) -> bool:
