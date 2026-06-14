@@ -19,7 +19,7 @@ from app.wikilinks import resolve_title
 from app.graph import build_graph
 from app.blocks import extract_blocks
 
-app = FastAPI(title="mdedit", version="0.8.0")
+app = FastAPI(title="mdedit", version="0.9.0")
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _config: AppConfig | None = None

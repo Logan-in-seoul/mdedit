@@ -18,6 +18,7 @@ import { MermaidBlock } from "../components/MermaidBlock";
 import { rehypeTagChips, TagChip } from "../components/TagChip";
 import { rehypeWikiLinks, WikiLink, resolvePath } from "../components/WikiLink";
 import { rehypeHighlight, rehypeScrSemantics } from "./scr-plugins";
+import { rehypeCallouts } from "../components/Callout";
 import { EmbedBlock } from "../components/EmbedBlock";
 import { BlockRef } from "../components/BlockRef";
 import type { Plugin } from "unified";
@@ -86,6 +87,7 @@ const processor = unified()
   .use(remarkMath)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
+  .use(rehypeCallouts)
   .use(rehypeLineNumbers)
   // 듀얼 테마: 라이트는 인라인 color, 다크는 --shiki-dark 변수로 내보내고
   // global.css의 prefers-color-scheme 미디어 쿼리가 전환한다.

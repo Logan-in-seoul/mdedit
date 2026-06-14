@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.0] - 2026-06-14
+
+### Added
+- **콜아웃** — `> [!type] 제목` 블록을 색상 구분 박스로 렌더. 표준(note·tip·important·warning·caution) + 회의 자료용 커스텀(key·goal·say·ask·danger). 제목 생략 시 타입별 기본 라벨, 마커 없는 인용은 기존 blockquote 유지. 라이트/다크 양쪽 토큰 (`components/Callout.tsx`, `rehypeCallouts`)
+
 ## [0.8.0] - 2026-06-08
 
 ### Added

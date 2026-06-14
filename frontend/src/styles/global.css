@@ -200,6 +200,109 @@ blockquote {
   border-radius: 0 6px 6px 0;
 }
 
+/* ============ 콜아웃 (v0.9.0 — > [!type] 제목) ============ */
+.callout {
+  margin: 1.15em 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--callout-accent, var(--accent));
+  border-radius: 0 8px 8px 0;
+  background: var(--callout-bg, var(--surface));
+  color: var(--ink);
+}
+
+.callout > .callout-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-weight: 700;
+  font-size: 0.92em;
+  letter-spacing: -0.01em;
+  color: var(--callout-accent, var(--accent));
+}
+
+.callout .callout-icon {
+  font-style: normal;
+  line-height: 1;
+}
+
+.callout > :last-child {
+  margin-bottom: 0;
+}
+
+.callout p {
+  margin: 0.4em 0;
+  color: var(--ink);
+}
+
+.callout-note,
+.callout-info {
+  --callout-accent: #2e66d0;
+  --callout-bg: #eaf0fb;
+}
+.callout-tip {
+  --callout-accent: #1d9a6c;
+  --callout-bg: #e7f6ef;
+}
+.callout-key,
+.callout-important,
+.callout-goal {
+  --callout-accent: #7a3ed0;
+  --callout-bg: #f1eafb;
+}
+.callout-say {
+  --callout-accent: #b3540e;
+  --callout-bg: #fbf0e3;
+}
+.callout-ask {
+  --callout-accent: #a07a00;
+  --callout-bg: #fbf4d9;
+}
+.callout-warning,
+.callout-caution {
+  --callout-accent: #c8881a;
+  --callout-bg: #fcf2dd;
+}
+.callout-danger {
+  --callout-accent: #c0392b;
+  --callout-bg: #fbe9e7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .callout-note,
+  .callout-info {
+    --callout-accent: #7aa5f0;
+    --callout-bg: #16243d;
+  }
+  .callout-tip {
+    --callout-accent: #4fc795;
+    --callout-bg: #122a20;
+  }
+  .callout-key,
+  .callout-important,
+  .callout-goal {
+    --callout-accent: #b487f0;
+    --callout-bg: #241a38;
+  }
+  .callout-say {
+    --callout-accent: #e09a55;
+    --callout-bg: #2e2013;
+  }
+  .callout-ask {
+    --callout-accent: #d8b64a;
+    --callout-bg: #2a2410;
+  }
+  .callout-warning,
+  .callout-caution {
+    --callout-accent: #e0b94d;
+    --callout-bg: #2a2210;
+  }
+  .callout-danger {
+    --callout-accent: #e0685c;
+    --callout-bg: #2e1715;
+  }
+}
+
 hr {
   border: none;
   height: 1px;
