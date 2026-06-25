@@ -1,6 +1,6 @@
 [project]
 name = "mdedit"
-version = "0.8.0"
+version = "0.10.0"
 description = "로컬 마크다운 워크스페이스 — FTS 검색, 위키링크, 그래프 뷰"
 requires-python = ">=3.11"
 dependencies = [

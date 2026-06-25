@@ -116,6 +116,85 @@ class TestRanking:
         )
 
 
+@pytest.fixture
+def korean_vault(tmp_path: Path) -> AppConfig:
+    root = tmp_path / "vault"
+    root.mkdir()
+    (root / "meeting.md").write_text(
+        "# 2026 상반기 회의자료\n\n"
+        "오늘 회의 안건을 정리한다.\n"
+        "결제 연동 일정 공유.\n",
+        encoding="utf-8",
+    )
+    (root / "etc.md").write_text(
+        "# 잡담\n\n점심 메뉴 정하기.\n",
+        encoding="utf-8",
+    )
+    fts_index.init_db(tmp_path / "state")
+    cfg = AppConfig(roots=[RootConfig(name="vault", path=root)])
+    fts_index.refresh(cfg)
+    return cfg
+
+
+class TestKoreanSearch:
+    def test_substring_match_3char_plus(self, korean_vault: AppConfig):
+        """'회의자료'(제목)를 부분어 '회의자'로 찾는다 — unicode61에선 불가했던 케이스."""
+        res = fts_index.search(korean_vault, "회의자")
+        paths = {h.path for h in res.hits}
+        assert "vault://meeting.md" in paths
+
+    def test_two_char_korean_falls_back_to_like(self, korean_vault: AppConfig):
+        """2글자 한글 '회의' — trigram 불가, LIKE 폴백으로 잡혀야 한다."""
+        res = fts_index.search(korean_vault, "회의")
+        paths = {h.path for h in res.hits}
+        assert "vault://meeting.md" in paths, "2글자 한글이 LIKE 폴백으로 잡혀야 한다"
+
+    def test_two_char_no_false_positive(self, korean_vault: AppConfig):
+        """존재하지 않는 2글자어는 결과가 없어야 한다 (LIKE 폴백 오탐 방지)."""
+        res = fts_index.search(korean_vault, "회계")
+        assert res.hits == []
+
+    def test_snippet_marks_match_span(self, korean_vault: AppConfig):
+        """스니펫의 match_start:match_end가 실제 검색어 구간을 가리켜야 한다."""
+        res = fts_index.search(korean_vault, "회의")
+        hit = next(h for h in res.hits if h.path == "vault://meeting.md")
+        assert hit.snippet[hit.match_start : hit.match_end] == "회의"
+
+
+class TestTrigramMigration:
+    def test_unicode61_index_rebuilt_as_trigram(self, tmp_path: Path):
+        """구버전 unicode61 lines_fts가 init_db에서 trigram으로 재생성되고
+        mtime 무효화로 재인덱싱된다."""
+        import sqlite3
+
+        state = tmp_path / "state"
+        state.mkdir(parents=True)
+        db = sqlite3.connect(str(state / "index.db"))
+        db.execute(
+            "CREATE TABLE files (path TEXT PRIMARY KEY, name TEXT NOT NULL,"
+            " mtime INTEGER NOT NULL, size INTEGER NOT NULL, title TEXT)"
+        )
+        db.execute(
+            "CREATE VIRTUAL TABLE lines_fts USING fts5("
+            "path UNINDEXED, line_num UNINDEXED, text, tokenize='unicode61')"
+        )
+        db.execute(
+            "INSERT INTO files VALUES ('vault://a.md', 'a.md', 12345, 10, NULL)"
+        )
+        db.commit()
+        db.close()
+
+        fts_index.init_db(state)
+        sql = fts_index.get_db().execute(
+            "SELECT sql FROM sqlite_master WHERE name='lines_fts'"
+        ).fetchone()[0]
+        assert "trigram" in sql.lower()
+        mtime = fts_index.get_db().execute(
+            "SELECT mtime FROM files WHERE path='vault://a.md'"
+        ).fetchone()[0]
+        assert mtime == 0, "재인덱싱 유도를 위해 mtime이 무효화돼야 한다"
+
+
 class TestMigration:
     def test_old_schema_gets_title_column(self, tmp_path: Path):
         """title 컬럼 없는 구버전 DB가 init_db에서 마이그레이션된다."""

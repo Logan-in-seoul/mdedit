@@ -42,7 +42,7 @@ def _init_schema(db: sqlite3.Connection) -> None:
             path UNINDEXED,
             line_num UNINDEXED,
             text,
-            tokenize='unicode61'
+            tokenize='trigram'
         );
         CREATE VIRTUAL TABLE IF NOT EXISTS file_tags USING fts5(
             path UNINDEXED,
@@ -83,6 +83,7 @@ def init_db(state_dir: Path) -> None:
     _init_schema(_DB)
     _migrate_tags(_DB)
     _migrate_title(_DB)
+    _migrate_trigram(_DB)
 
 
 def _migrate_tags(db: sqlite3.Connection) -> None:
@@ -95,6 +96,26 @@ def _migrate_tags(db: sqlite3.Connection) -> None:
     if tag_count == 0:
         # backfill marker: invalidate mtime so refresh will re-process
         with _DB_LOCK:
+            db.execute("UPDATE files SET mtime = 0")
+            db.commit()
+
+
+def _migrate_trigram(db: sqlite3.Connection) -> None:
+    """lines_fts가 구버전 unicode61 토크나이저면 trigram으로 재생성한다.
+
+    unicode61은 한글 음절 런을 통째로 한 토큰으로 만들어 부분 검색('회의자료'를
+    '회의'로 못 찾음)이 불가능했다. trigram은 부분/중간 매치를 지원한다.
+    재생성 후 mtime을 무효화해 다음 refresh()에서 전량 재인덱싱되게 한다. idempotent."""
+    row = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='lines_fts'"
+    ).fetchone()
+    if row and "trigram" not in (row[0] or "").lower():
+        with _DB_LOCK:
+            db.execute("DROP TABLE lines_fts")
+            db.execute(
+                "CREATE VIRTUAL TABLE lines_fts USING fts5("
+                "path UNINDEXED, line_num UNINDEXED, text, tokenize='trigram')"
+            )
             db.execute("UPDATE files SET mtime = 0")
             db.commit()
 
@@ -327,17 +348,42 @@ def unstar(path: str) -> None:
         db.commit()
 
 
-def _escape_fts(query: str) -> str:
-    """FTS5 phrase query: 토큰별로 분리 후 큰따옴표로 감싸 안전화."""
-    tokens = [t for t in query.split() if t]
-    if not tokens:
-        return '""'
-    safe = []
-    for t in tokens:
-        cleaned = t.replace('"', "")
+TRIGRAM_MIN = 3  # trigram 토크나이저는 3글자 미만 토큰을 매치할 수 없다
+
+
+def _tokenize_query(query: str) -> list[str]:
+    """공백으로 분리하고 큰따옴표를 제거한다. 빈 토큰은 버린다."""
+    out: list[str] = []
+    for t in query.split():
+        cleaned = t.replace('"', "").strip()
         if cleaned:
-            safe.append(f'"{cleaned}"')
-    return " ".join(safe) if safe else '""'
+            out.append(cleaned)
+    return out
+
+
+def _trigram_match_query(tokens: list[str]) -> str:
+    """trigram FTS5용 substring-AND 쿼리: 각 토큰을 따옴표 구절로 감싼다."""
+    return " ".join(f'"{t}"' for t in tokens)
+
+
+def _like_term(token: str) -> str:
+    """LIKE 폴백용 패턴. %·_·\\ 를 이스케이프해 와일드카드 오작동을 막는다."""
+    esc = token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{esc}%"
+
+
+def _locate_match(text: str, tokens: list[str]) -> tuple[int, int] | None:
+    """라인에서 토큰 중 가장 먼저 등장하는 구간을 찾는다 (대소문자 무시).
+
+    trigram이 과대 매치하거나 LIKE 와일드카드가 섞여도, 실제 토큰이 부분
+    문자열로 존재하는 라인만 통과시켜 거짓 양성을 걸러낸다."""
+    low = text.lower()
+    best: tuple[int, int] | None = None
+    for t in tokens:
+        idx = low.find(t.lower())
+        if idx >= 0 and (best is None or idx < best[0]):
+            best = (idx, idx + len(t))
+    return best
 
 
 def _extract_tag_prefix(query: str) -> tuple[str, str | None]:
@@ -497,20 +543,40 @@ def search(
 
     if not needle:
         return SearchResponse(query=query, total=0, truncated=False, hits=[])
-    fts_query = _escape_fts(needle)
-    rows = db.execute(
-        """
-        SELECT lines_fts.path, line_num, text,
-               highlight(lines_fts, 2, '<<MARK>>', '<<ENDMARK>>') AS hl,
-               rank, f.name, f.title, f.mtime
-        FROM lines_fts
-        JOIN files AS f ON f.path = lines_fts.path
-        WHERE lines_fts MATCH ?
-        ORDER BY rank
-        LIMIT ?
-        """,
-        (fts_query, max_hits * 4),
-    ).fetchall()
+    tokens = _tokenize_query(needle)
+    if not tokens:
+        return SearchResponse(query=query, total=0, truncated=False, hits=[])
+
+    if all(len(t) >= TRIGRAM_MIN for t in tokens):
+        # 3글자 이상 토큰만 — trigram FTS로 bm25 랭킹과 함께 빠르게 조회한다
+        rows = db.execute(
+            """
+            SELECT lines_fts.path, line_num, text, rank, f.name, f.title, f.mtime
+            FROM lines_fts
+            JOIN files AS f ON f.path = lines_fts.path
+            WHERE lines_fts MATCH ?
+            ORDER BY rank
+            LIMIT ?
+            """,
+            (_trigram_match_query(tokens), max_hits * 4),
+        ).fetchall()
+    else:
+        # 2글자 이하 토큰 포함(예: 한글 '회의') — trigram이 못 잡으므로 LIKE 부분 스캔으로 폴백.
+        # bm25 랭크가 없어 rank=0; 최근 수정 순으로 후보를 모으고 점수 모델로 정렬한다.
+        like_clause = " AND ".join(["lines_fts.text LIKE ? ESCAPE '\\'"] * len(tokens))
+        params: list = [_like_term(t) for t in tokens]
+        params.append(max_hits * 4)
+        rows = db.execute(
+            f"""
+            SELECT lines_fts.path, line_num, text, 0.0 AS rank, f.name, f.title, f.mtime
+            FROM lines_fts
+            JOIN files AS f ON f.path = lines_fts.path
+            WHERE {like_clause}
+            ORDER BY f.mtime DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
     if tag_paths is not None:
         rows = [r for r in rows if r[0] in tag_paths]
 
@@ -524,8 +590,9 @@ def search(
     pad = 60
     groups: dict[str, dict] = {}  # path → {score, hits:[(line, SearchHit)]}
 
-    for path, line_num, text, hl, rank, name, title, mtime in rows:
-        if hl is None or "<<MARK>>" not in hl:
+    for path, line_num, text, rank, name, title, mtime in rows:
+        span = _locate_match(text, tokens)
+        if span is None:
             continue
         total += 1
 
@@ -548,15 +615,11 @@ def search(
         if len(group["hits"]) >= max_per_file:
             continue
 
-        # Build snippet from hl: locate first match
-        idx = hl.find("<<MARK>>")
-        end = hl.find("<<ENDMARK>>", idx)
-        if idx < 0 or end < 0:
-            continue
-        match_text = hl[idx + len("<<MARK>>") : end]
-        before = hl[:idx].replace("<<MARK>>", "").replace("<<ENDMARK>>", "")
-        after = hl[end + len("<<ENDMARK>>") :].replace("<<MARK>>", "").replace("<<ENDMARK>>", "")
-        # Trim padding
+        # 스니펫: Python에서 매치 위치를 계산한다 (trigram·LIKE 양쪽 공통)
+        m_start, m_end = span
+        match_text = text[m_start:m_end]
+        before = text[:m_start]
+        after = text[m_end:]
         before_trim = before[-pad:] if len(before) > pad else before
         after_trim = after[:pad] if len(after) > pad else after
         prefix = "…" if len(before) > pad else ""

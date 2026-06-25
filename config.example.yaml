@@ -8,6 +8,9 @@ exclude:
   - node_modules
   - .git
   - "*.log"
+  # 에이전트가 자동 기록하는 세션 로그·메모리(예: ~/.claude/projects)를 트리·검색에서 제외.
+  # exclude는 디렉터리/파일 basename 단위 fnmatch 매칭이다.
+  # - projects
 
 respect_gitignore: true
 server:
