@@ -49,6 +49,20 @@ def main() -> None:
 
     host = args.host or config.server.host
     port = args.port or config.server.port
+
+    # DNS 리바인딩 방어: 로컬 파일 서버라 인증이 없으므로, 악성 웹페이지가
+    # 자기 도메인을 127.0.0.1로 리바인딩해 로컬 API로 파일을 빼가는 경로를 Host 검증으로 차단.
+    # localhost·명시 바인딩 host는 허용하되 임의 Host 헤더는 거부. (2026-07-02 보안감사)
+    import socket
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+    allowed = {"localhost", "127.0.0.1", "::1", "testserver"}
+    if host in ("0.0.0.0", "::", ""):
+        allowed.add(socket.gethostname())  # 광범위 바인딩: LAN 접근 호스트명만 추가 허용
+    else:
+        allowed.add(host)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=sorted(allowed))
+
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
