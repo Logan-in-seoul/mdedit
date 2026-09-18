@@ -7,6 +7,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeKatex from "rehype-katex";
 import rehypeShikiFromHighlighter from "@shikijs/rehype/core";
 import { createHighlighterCore } from "shiki/core";
@@ -80,6 +81,24 @@ const highlighter = (await createHighlighterCore({
   engine: createJavaScriptRegexEngine(),
 })) as unknown as HighlighterGeneric<any, any>;
 
+// 저장형 XSS 방어 (2026-07-02 보안감사): rehypeRaw가 .md 안의 raw HTML을
+// hast로 통과시키므로, 그 직후 sanitize로 위험 요소(iframe/srcdoc·script·on*·javascript:)를 제거한다.
+// 신뢰 플러그인(callouts·shiki·katex·tag-chip·wiki-link·scr)은 sanitize 이후에 돌아 영향받지 않는다.
+// code에는 bare className을 허용 — remark-math가 sanitize 이전에 붙이는 math-inline/math-display를
+// 보존하기 위함(className은 실행 불가한 inert 속성이라 XSS 벡터 아님).
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [
+      ...(defaultSchema.attributes?.code || []).filter(
+        (a: unknown) => !(Array.isArray(a) && a[0] === "className"),
+      ),
+      "className",
+    ],
+  },
+} as typeof defaultSchema;
+
 const processor = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ["yaml"])
@@ -87,6 +106,7 @@ const processor = unified()
   .use(remarkMath)
   .use(remarkRehype, { allowDangerousHtml: true })
   .use(rehypeRaw)
+  .use(rehypeSanitize, sanitizeSchema)
   .use(rehypeCallouts)
   .use(rehypeLineNumbers)
   // 듀얼 테마: 라이트는 인라인 color, 다크는 --shiki-dark 변수로 내보내고
