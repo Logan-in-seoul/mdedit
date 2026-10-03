@@ -284,14 +284,25 @@ def get_block(path: str, block_id: str):
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
-if _STATIC_DIR.is_dir():
-    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="assets")
 
-    @app.get("/{full_path:path}")
+def mount_static(target: FastAPI, static_dir: Path) -> None:
+    """빌드된 프런트엔드를 서빙한다. assets 외 정적 파일(fonts 등)도 직접 내려준다."""
+    root = static_dir.resolve()
+    target.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
+    @target.get("/{full_path:path}")
     def spa_fallback(full_path: str) -> FileResponse:
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404)
-        index = _STATIC_DIR / "index.html"
+        if full_path:
+            candidate = (root / full_path).resolve()
+            if candidate.is_file() and candidate.is_relative_to(root):
+                return FileResponse(candidate)
+        index = root / "index.html"
         if not index.is_file():
             raise HTTPException(status_code=404)
         return FileResponse(index)
+
+
+if _STATIC_DIR.is_dir():
+    mount_static(app, _STATIC_DIR)

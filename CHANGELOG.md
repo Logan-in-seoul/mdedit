@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Pretendard 로컬 번들** — CDN 링크 제거, `frontend/public/fonts/pretendard`에 v1.3.9 가변 폰트(동적 서브셋 woff2)를 포함. 오프라인에서도 타이포가 유지된다. SPA fallback이 `assets` 외 정적 파일(`/fonts/*`)도 직접 서빙하도록 `mount_static`으로 정리 (경로 이탈 차단, 테스트 포함)
+
 ## [0.10.0] - 2026-06-25
 
 ### Changed

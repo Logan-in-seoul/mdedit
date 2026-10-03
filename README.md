@@ -77,7 +77,7 @@ Vite dev 서버는 `/api`를 백엔드로 프록시한다.
 - **응답이 없다 (systemd 사용 중)**: `journalctl --user -u mdedit -n 50`으로 로그를 본다.
 - **응답이 없다 (nohup 사용 중)**: `~/.local/state/mdedit/mdedit.log`로 로그를 본다.
 - **config 오류**: `~/.config/mdedit/config.yaml`의 루트 경로가 실제로 존재하는지 확인한다.
-- **Pretendard가 안 뜬다**: 인터넷이 끊겨 CDN 접근이 안 될 때다. 프런트엔드 번들로 옮기는 작업은 Phase 2에서 다룬다.
+- **Pretendard가 안 뜬다**: 폰트는 `frontend/public/fonts/pretendard`에 번들돼 있어 오프라인에서도 동작한다. 프런트엔드를 다시 빌드했는지 확인한다. (KaTeX CSS는 아직 CDN을 사용한다.)
 
 ## 파일 구조
 
