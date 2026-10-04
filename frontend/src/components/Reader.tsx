@@ -81,6 +81,12 @@ export function Reader({ path, scrollToLine }: Props) {
           <span className="external-path">{path.slice(6)}</span>
         </div>
       )}
+      {content.reading && content.reading.minutes > 0 && (
+        <div className="reading-time" title={`${content.reading.characters.toLocaleString()}자 · ${content.reading.words.toLocaleString()}단어`}>
+          약 {content.reading.minutes}분 · {content.reading.characters.toLocaleString()}자
+          {content.reading.words > 0 && ` · ${content.reading.words.toLocaleString()}단어`}
+        </div>
+      )}
       {content.frontmatter && (
         <section className="frontmatter">
           <h3>frontmatter</h3>

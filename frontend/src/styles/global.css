@@ -1464,3 +1464,9 @@ body.reading-active .main-inner {
   .scr-label-close   { background: #0d2b1e; color: #6ee7b7; border-color: #155e3f; }
   .scr-label-caution { background: #2b220d; color: #fbbf24; border-color: #5c4400; }
 }
+
+.reading-time {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}

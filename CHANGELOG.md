@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- **읽기 시간** — `GET /api/file` 응답에 `reading`(`words`·`characters`·`minutes`) 추가(하위 호환, 신규 필드). CJK는 글자 수(분당 500자), 그 외는 단어 수(분당 230단어)로 계산하고 코드 펜스는 제외. 에디터(리더) 상단에 작게 표시
+
 ### Changed
 - **Pretendard 로컬 번들** — CDN 링크 제거, `frontend/public/fonts/pretendard`에 v1.3.9 가변 폰트(동적 서브셋 woff2)를 포함. 오프라인에서도 타이포가 유지된다. SPA fallback이 `assets` 외 정적 파일(`/fonts/*`)도 직접 서빙하도록 `mount_static`으로 정리 (경로 이탈 차단, 테스트 포함)
 

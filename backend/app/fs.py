@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import fnmatch
+import math
 import re
 import threading
 from pathlib import Path
 
 import frontmatter
 
-from app.schema import AppConfig, FileContent, FileNode, RootConfig
+from app.schema import AppConfig, FileContent, FileNode, ReadingStats, RootConfig
 
 
 class FileNotFoundInVault(FileNotFoundError):
@@ -109,6 +110,26 @@ def _extract_title(body: str) -> str | None:
     return None
 
 
+_CJK_RE = re.compile(
+    "[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]"
+)
+_CODE_FENCE_RE = re.compile(r"^(```|~~~).*?^\1[ \t]*$", re.S | re.M)
+_WORD_RE = re.compile(r"[^\W_]+", re.U)
+_CJK_CPM = 500  # 분당 CJK 글자 수
+_WORDS_PER_MIN = 230  # 분당 단어 수
+
+
+def compute_reading_stats(body: str) -> ReadingStats:
+    """CJK는 글자 수, 그 외는 단어 수로 센다. 코드 펜스는 제외."""
+    text = _CODE_FENCE_RE.sub(" ", body)
+    characters = len(_CJK_RE.findall(text))
+    words = len(_WORD_RE.findall(_CJK_RE.sub(" ", text)))
+    if characters == 0 and words == 0:
+        return ReadingStats(words=0, characters=0, minutes=0)
+    minutes = max(1, math.ceil(characters / _CJK_CPM + words / _WORDS_PER_MIN))
+    return ReadingStats(words=words, characters=characters, minutes=minutes)
+
+
 def read_file(virtual: str, config: AppConfig) -> FileContent:
     if virtual.startswith(EXTERNAL_SCHEME):
         path = resolve_external(virtual)
@@ -128,6 +149,7 @@ def read_file(virtual: str, config: AppConfig) -> FileContent:
         body=body,
         mtime=int(stat.st_mtime),
         size=stat.st_size,
+        reading=compute_reading_stats(body),
     )
 
 

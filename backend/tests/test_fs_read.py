@@ -53,3 +53,35 @@ def test_read_file_handles_missing_frontmatter(tmp_path: Path):
     content = read_file("common://plain.md", config)
     assert content.frontmatter is None
     assert content.title == "제목만"
+
+
+def test_reading_stats_english_and_empty():
+    from app.fs import compute_reading_stats
+
+    s = compute_reading_stats("hello world " * 230)
+    assert (s.words, s.characters, s.minutes) == (460, 0, 2)
+    z = compute_reading_stats("  \n")
+    assert (z.words, z.characters, z.minutes) == (0, 0, 0)
+    assert compute_reading_stats("one").minutes == 1
+
+
+def test_reading_stats_korean_counts_characters():
+    from app.fs import compute_reading_stats
+
+    s = compute_reading_stats("안녕하세요 세계 hello")
+    assert s.characters == 7 and s.words == 1
+    assert compute_reading_stats("가" * 1000).minutes == 2
+
+
+def test_reading_stats_ignores_code_fences():
+    from app.fs import compute_reading_stats
+
+    s = compute_reading_stats("text\n```py\nx y z w\n```\nend")
+    assert s.words == 2
+
+
+def test_read_file_includes_reading(tmp_path: Path):
+    config = _make_config(tmp_path)
+    (tmp_path / "common" / "a.md").write_text("# T\n\n가나다 word")
+    fc = read_file("common://a.md", config)
+    assert fc.reading is not None and fc.reading.characters == 3 and fc.reading.minutes == 1

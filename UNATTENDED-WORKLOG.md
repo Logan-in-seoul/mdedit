@@ -4,7 +4,7 @@
 
 ## 큐
 - [x] 1. Pretendard 로컬 번들
-- [ ] 2. 읽기 시간 (words/characters/minutes, 메타데이터 엔드포인트, 에디터 헤더 표시)
+- [x] 2. 읽기 시간 (words/characters/minutes, 메타데이터 엔드포인트, 에디터 헤더 표시)
 - [ ] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
 - [ ] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
 - [ ] 5. 섹션 접기
@@ -27,3 +27,18 @@
 Logan 확인 필요
 - KaTeX CSS도 CDN(jsdelivr)을 사용합니다. 항목 범위 밖이라 그대로 두었습니다. 번들 전환이 필요하면 알려 주세요.
 - `fs.py:160`의 `FileEntry` F821은 실제 런타임 버그일 수 있어 별도 확인이 필요합니다.
+
+## 2026-10-04 (KST) — 항목 2
+변경 파일
+- `backend/app/schema.py`, `backend/app/fs.py`: `ReadingStats`, `compute_reading_stats()`, `FileContent.reading` 추가 (`/api/file` 응답에 신규 선택 필드)
+- `backend/tests/test_fs_read.py`: 4건 추가 (영문, 한글, 코드 펜스 제외, read_file 통합)
+- `frontend/src/lib/api.ts`, `components/Reader.tsx`, `styles/global.css`: 본문 상단에 "약 N분 · N자 · N단어" 표시
+- `CHANGELOG.md`
+
+검증
+- `pytest`: 187 passed, 1 skipped
+- `npm run build`: 성공
+
+Logan 확인 필요
+- 별도의 "메타데이터 엔드포인트"가 없어 `/api/file` 응답에 필드를 추가했습니다. 분리가 필요하면 알려 주세요.
+- 속도 상수(CJK 500자/분, 영문 230단어/분)는 일반적인 값으로 정했습니다.

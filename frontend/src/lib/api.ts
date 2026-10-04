@@ -12,6 +12,7 @@ export interface FileContent {
   body: string;
   mtime: number;
   size: number;
+  reading?: { words: number; characters: number; minutes: number } | null;
 }
 
 export interface FileEntry {

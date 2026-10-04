@@ -27,6 +27,12 @@ class FileNode(BaseModel):
     children: list["FileNode"] | None = None
 
 
+class ReadingStats(BaseModel):
+    words: int  # 비 CJK 단어 수
+    characters: int  # CJK 글자 수 (공백 제외)
+    minutes: int  # 예상 읽기 시간(분, 올림, 내용이 있으면 최소 1)
+
+
 class FileContent(BaseModel):
     path: str
     title: str | None = None
@@ -34,6 +40,7 @@ class FileContent(BaseModel):
     body: str
     mtime: int
     size: int
+    reading: ReadingStats | None = None
 
 
 FileNode.model_rebuild()
