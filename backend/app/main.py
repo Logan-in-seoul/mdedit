@@ -71,6 +71,7 @@ def search(
     path: str | None = Query(None),
     type: str | None = Query(None),
     limit: int = Query(200),
+    regex: bool = Query(False),
 ) -> SearchResponse:
     try:
         return fts_index.search(
@@ -80,7 +81,10 @@ def search(
             tag=tag or None,
             path_filter=path or None,
             type_filter=type or None,
+            regex=regex,
         )
+    except fts_index.RegexSearchError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
 

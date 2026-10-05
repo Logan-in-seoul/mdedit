@@ -5,7 +5,7 @@
 ## 큐
 - [x] 1. Pretendard 로컬 번들
 - [x] 2. 읽기 시간 (words/characters/minutes, 메타데이터 엔드포인트, 에디터 헤더 표시)
-- [ ] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
+- [x] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
 - [ ] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
 - [ ] 5. 섹션 접기
 - [ ] 6. 위키링크 호버 프리뷰
@@ -42,3 +42,21 @@ Logan 확인 필요
 Logan 확인 필요
 - 별도의 "메타데이터 엔드포인트"가 없어 `/api/file` 응답에 필드를 추가했습니다. 분리가 필요하면 알려 주세요.
 - 속도 상수(CJK 500자/분, 영문 230단어/분)는 일반적인 값으로 정했습니다.
+
+## 2026-10-05 (KST) — 항목 3
+변경 파일
+- `backend/app/index.py`: `compile_safe_regex()`(AST 검사로 위험 패턴 거부), `_search_regex()`(시간 예산 2초·라인 400자·파일당 5건·`limit` 상한), `search(..., regex=False)`
+- `backend/app/main.py`: `/api/search`에 `regex` 쿼리 파라미터, `RegexSearchError` → HTTP 400
+- `backend/tests/test_search_regex.py`: 신규(매치·필터·랭킹·한도·시간 초과·위험 패턴·API)
+- `frontend/src/lib/api.ts`, `components/FlatList.tsx`, `styles/global.css`: `.*` 토글, 거부 시 안내 문구
+- `CHANGELOG.md`
+
+검증
+- `pytest`: 210 passed, 1 skipped
+- `ruff check app tests/test_search_regex.py`: 기존 `fs.py` F821 1건만(변경 무관)
+- `npm run build`: 성공
+
+Logan 확인 필요
+- 안전 정책이 보수적입니다: `(foo|bar)+`처럼 반복 안의 `|`와 `a*b*c*d*`처럼 무한 반복 4개 이상은 거부합니다. 완화가 필요하면 알려 주세요.
+- 파이썬 `re`는 매칭 도중 중단할 수 없어 시간 예산은 라인 단위로 확인합니다. 패턴 제한 + 라인 길이 제한으로 라인당 최악 비용을 묶었습니다.
+- 정규식 모드는 대소문자 무시 고정입니다.

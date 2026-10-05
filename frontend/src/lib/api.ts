@@ -107,11 +107,19 @@ export const api = {
     json<FileEntry[]>(
       `/api/backlinks?path=${encodeURIComponent(virtualPath)}&limit=${limit}`,
     ),
-  search: (q: string, tag?: string, limit = 200, path?: string, type?: string) => {
+  search: (
+    q: string,
+    tag?: string,
+    limit = 200,
+    path?: string,
+    type?: string,
+    regex = false,
+  ) => {
     const params = new URLSearchParams({ q, limit: String(limit) });
     if (tag) params.set("tag", tag);
     if (path) params.set("path", path);
     if (type) params.set("type", type);
+    if (regex) params.set("regex", "true");
     return json<SearchResponse>(`/api/search?${params}`);
   },
   tags: (limit = 500) =>

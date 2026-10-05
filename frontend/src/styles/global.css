@@ -702,6 +702,32 @@ hr {
   gap: 8px;
 }
 
+.flatlist-filter-row {
+  display: flex;
+  gap: 4px;
+}
+
+.flatlist-filter-row .flatlist-filter {
+  flex: 1;
+  min-width: 0;
+}
+
+.regex-toggle {
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--ink-muted, var(--ink));
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.regex-toggle.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .flatlist-filter {
   padding: 7px 10px;
   border: 1px solid var(--line);
