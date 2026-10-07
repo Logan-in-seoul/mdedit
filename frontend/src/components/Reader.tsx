@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, FileContent } from "../lib/api";
 import { renderMarkdown } from "../lib/markdown";
+import { setupFolding } from "../lib/fold";
 
 interface Props {
   path: string;
@@ -69,6 +70,12 @@ export function Reader({ path, scrollToLine }: Props) {
     });
     return () => cancelAnimationFrame(raf);
   }, [rendered, scrollToLine]);
+
+  // 헤딩 접기 토글 (노트별 상태 저장)
+  useEffect(() => {
+    if (!rendered || !bodyRef.current) return;
+    return setupFolding(bodyRef.current, path);
+  }, [rendered, path]);
 
   if (error) return <div className="placeholder">로드 실패: {error}</div>;
   if (!content) return <div className="placeholder">로딩 중…</div>;

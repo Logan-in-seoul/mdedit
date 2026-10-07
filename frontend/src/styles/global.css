@@ -1496,3 +1496,13 @@ body.reading-active .main-inner {
   font-size: 12px;
   color: var(--ink-faint);
 }
+
+/* 섹션 접기 (v0.8) */
+.reader .body .fold-hidden { display: none; }
+.reader .body .fold-toggle {
+  margin-right: 0.35em; padding: 0 0.2em; border: 0; background: none;
+  color: inherit; opacity: 0; cursor: pointer; font-size: 0.7em; vertical-align: middle;
+}
+.reader .body :is(h1, h2, h3, h4, h5, h6):hover .fold-toggle,
+.reader .body .fold-toggle:focus-visible,
+.reader .body [data-folded="true"] .fold-toggle { opacity: 0.6; }

@@ -7,7 +7,7 @@
 - [x] 2. 읽기 시간 (words/characters/minutes, 메타데이터 엔드포인트, 에디터 헤더 표시)
 - [x] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
 - [x] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
-- [ ] 5. 섹션 접기
+- [x] 5. 섹션 접기
 - [ ] 6. 위키링크 호버 프리뷰
 - [ ] 7. 최종 QA
 
@@ -75,3 +75,20 @@ Logan 확인 필요
 Logan 확인 필요
 - `.github/workflows`가 없지만 규칙상 워크플로 파일은 만들지 않았습니다(pytest + 프런트 build/test CI는 보류). 필요하면 직접 추가하거나 허용해 주세요.
 - 검색창과 별표 목록이 `FlatList` 한 컴포넌트라 테스트도 한 파일입니다.
+
+## 2026-10-07 (KST) — 항목 5
+변경 파일
+- `frontend/src/lib/fold.ts`: `setupFolding()` — 헤딩에 토글 버튼 부착, 하위 헤딩 포함 숨김, 접힘 키(순번:제목)를 노트 경로별 localStorage에 저장·복원, 정리 함수 제공
+- `frontend/src/components/Reader.tsx`: 렌더 완료 후 `setupFolding` 연결
+- `frontend/src/styles/global.css`: 토글 스타일(호버/포커스 시 표시, 접힌 헤딩은 항상 표시)
+- `frontend/src/lib/fold.test.ts`: 신규 3건 (접기·중첩, 저장/복원, 정리)
+- `CHANGELOG.md`
+
+검증
+- `npm test`: 9 passed (기존 6 + 신규 3)
+- `npx tsc -b`, `npm run build`: 성공
+
+Logan 확인 필요
+- 현재 앱에는 편집기(CodeMirror)가 없고 리더 뷰만 있어, "에디터 뷰"를 리더 본문으로 해석했습니다.
+- 접힘 키에 헤딩 순번이 포함되어, 노트 앞부분에 헤딩이 추가/삭제되면 저장된 접힘 상태가 어긋날 수 있습니다(보수적 선택).
+- 접힌 구간 안의 검색 결과 이동/앵커 이동은 자동으로 펼치지 않습니다.

@@ -6,6 +6,7 @@
 - **읽기 시간** — `GET /api/file` 응답에 `reading`(`words`·`characters`·`minutes`) 추가(하위 호환, 신규 필드). CJK는 글자 수(분당 500자), 그 외는 단어 수(분당 230단어)로 계산하고 코드 펜스는 제외. 에디터(리더) 상단에 작게 표시
 - **정규식 검색** — `GET /api/search?regex=true`(기본 off, 기존 동작 불변). trigram 대신 라인을 시간 예산(2초) 안에서 스캔하며 대소문자는 무시한다. 패턴 길이 200자, 라인당 400자까지만 검사. 역참조·중첩/선택 안의 무한 반복·무한 반복 4개 이상 같은 재앙적 백트래킹 패턴은 400으로 거부. 결과는 `limit`/파일당 5건으로 제한되고 시간 초과 시 `truncated`. 정규식 모드에서는 `tag:`/`path:`/`type:` 접두어를 해석하지 않는다(명시 파라미터만). 사이드바 검색창에 `.*` 토글 추가
 - **프런트엔드 테스트 하네스** — Vitest + React Testing Library(jsdom). `npm test`로 실행하며 `FlatList`(검색창·정규식 토글·별표 고정 목록) 스모크 테스트 6건 포함
+- **섹션 접기** — 리더 본문 헤딩에 ▾/▸ 토글 추가. 접으면 같거나 높은 레벨의 다음 헤딩 전까지(하위 헤딩 포함) 숨기며, 접힘 상태는 노트별로 localStorage에 저장·복원. 백엔드·파일 형식 변경 없음
 
 ### Changed
 - **Pretendard 로컬 번들** — CDN 링크 제거, `frontend/public/fonts/pretendard`에 v1.3.9 가변 폰트(동적 서브셋 woff2)를 포함. 오프라인에서도 타이포가 유지된다. SPA fallback이 `assets` 외 정적 파일(`/fonts/*`)도 직접 서빙하도록 `mount_static`으로 정리 (경로 이탈 차단, 테스트 포함)
