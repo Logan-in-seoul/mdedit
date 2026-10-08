@@ -8,7 +8,7 @@
 - [x] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
 - [x] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
 - [x] 5. 섹션 접기
-- [ ] 6. 위키링크 호버 프리뷰
+- [x] 6. 위키링크 호버 프리뷰
 - [ ] 7. 최종 QA
 
 ## 2026-10-03 (KST) — 항목 1
@@ -92,3 +92,21 @@ Logan 확인 필요
 - 현재 앱에는 편집기(CodeMirror)가 없고 리더 뷰만 있어, "에디터 뷰"를 리더 본문으로 해석했습니다.
 - 접힘 키에 헤딩 순번이 포함되어, 노트 앞부분에 헤딩이 추가/삭제되면 저장된 접힘 상태가 어긋날 수 있습니다(보수적 선택).
 - 접힌 구간 안의 검색 결과 이동/앵커 이동은 자동으로 펼치지 않습니다.
+
+## 2026-10-08 (KST) — 항목 6
+변경 파일
+- `frontend/src/lib/preview.ts`: `previewText()`(헤딩 마커·코드 펜스 제거, 6줄/320자 제한), `loadPreview()`(노트별 캐시, 실패 시 캐시 안 함)
+- `frontend/src/lib/api.ts`: `api.peek()` — `mdedit:note-opened` 이벤트(그래프 패널 갱신)를 발생시키지 않는 파일 조회
+- `frontend/src/components/WikiLink.tsx`: 호버/포커스 350ms 후 포털 팝오버 표시, 해결된 링크의 기본 `title` 툴팁은 제거(중복 방지)
+- `frontend/src/styles/global.css`: `.wiki-preview`
+- `frontend/src/lib/preview.test.ts`(3건), `frontend/src/components/WikiLink.test.tsx`(2건)
+- `CHANGELOG.md`
+
+검증
+- `npm test`: 14 passed (기존 9 + 신규 5)
+- `npx tsc -b`, `npm run build`: 성공
+- 백엔드 변경 없음(pytest 미실행)
+
+Logan 확인 필요
+- 프리뷰는 원문 첫 줄들을 일반 텍스트로 보여 줍니다(마크다운 렌더 없음, XSS 표면 없음). 렌더된 프리뷰가 필요하면 알려 주세요.
+- 터치 기기에는 호버가 없어 표시되지 않습니다.

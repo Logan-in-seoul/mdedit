@@ -101,6 +101,9 @@ export const api = {
     }
     return res;
   },
+  // 위키링크 호버 프리뷰용 — "note-opened" 이벤트를 발생시키지 않는다
+  peek: (virtualPath: string) =>
+    json<FileContent>(`/api/file?path=${encodeURIComponent(virtualPath)}`),
   filesFlat: (limit = 500) =>
     json<FileEntry[]>(`/api/files/flat?limit=${limit}`),
   backlinks: (virtualPath: string, limit = 200) =>

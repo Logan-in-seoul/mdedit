@@ -1506,3 +1506,22 @@ body.reading-active .main-inner {
 .reader .body :is(h1, h2, h3, h4, h5, h6):hover .fold-toggle,
 .reader .body .fold-toggle:focus-visible,
 .reader .body [data-folded="true"] .fold-toggle { opacity: 0.6; }
+
+/* 위키링크 호버 프리뷰 */
+.wiki-preview {
+  position: fixed;
+  z-index: 1000;
+  width: 320px;
+  max-height: 180px;
+  overflow: hidden;
+  padding: 8px 10px;
+  background: var(--surface-raised, #fff);
+  color: var(--ink, #222);
+  border: 1px solid var(--line, #ddd);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
