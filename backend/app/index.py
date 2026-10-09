@@ -476,7 +476,8 @@ class RegexSearchError(ValueError):
 
 
 try:  # Python 3.11+
-    from re import _constants as _sre_const, _parser as _sre_parse
+    from re import _constants as _sre_const
+    from re import _parser as _sre_parse
 except ImportError:  # pragma: no cover
     import sre_constants as _sre_const  # type: ignore
     import sre_parse as _sre_parse  # type: ignore

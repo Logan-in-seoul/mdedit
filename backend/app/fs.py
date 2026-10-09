@@ -113,8 +113,8 @@ def _extract_title(body: str) -> str | None:
 _CJK_RE = re.compile(
     "[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]"
 )
-_CODE_FENCE_RE = re.compile(r"^(```|~~~).*?^\1[ \t]*$", re.S | re.M)
-_WORD_RE = re.compile(r"[^\W_]+", re.U)
+_CODE_FENCE_RE = re.compile(r"^(```|~~~).*?^\1[ \t]*$", re.DOTALL | re.MULTILINE)
+_WORD_RE = re.compile(r"[^\W_]+")
 _CJK_CPM = 500  # 분당 CJK 글자 수
 _WORDS_PER_MIN = 230  # 분당 단어 수
 

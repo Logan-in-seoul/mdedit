@@ -9,7 +9,7 @@
 - [x] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
 - [x] 5. 섹션 접기
 - [x] 6. 위키링크 호버 프리뷰
-- [ ] 7. 최종 QA
+- [x] 7. 최종 QA
 
 ## 2026-10-03 (KST) — 항목 1
 변경 파일
@@ -110,3 +110,18 @@ Logan 확인 필요
 Logan 확인 필요
 - 프리뷰는 원문 첫 줄들을 일반 텍스트로 보여 줍니다(마크다운 렌더 없음, XSS 표면 없음). 렌더된 프리뷰가 필요하면 알려 주세요.
 - 터치 기기에는 호버가 없어 표시되지 않습니다.
+
+## 2026-10-09 (KST) — 항목 7 (최종 QA)
+변경 파일
+- `backend/app/fs.py`, `backend/app/index.py`: 이번 브랜치에서 새로 생긴 ruff 경고 4건 정리(`re.S/M/U` 별칭, import 정렬). main 기준선(31건)과 동일해짐
+- `README.md`: 제공 범위(읽기 시간·접기·프리뷰·정규식 검색)와 개발 테스트 명령 추가
+- `PR-DRAFT.md`: 완료 상태로 갱신
+
+검증
+- `pytest`: 210 passed, 1 skipped
+- `ruff check app tests`: 31건(모두 main에도 존재하는 기존 경고)
+- `npm test`: 14 passed, `npm run build`: 성공
+- CHANGELOG Unreleased에 항목 1~6 모두 기재 확인
+
+Logan 확인 필요
+- 위 각 항목의 "확인 필요" 사항 유지(KaTeX CDN, `fs.py` FileEntry F821, CI 워크플로 보류, 정규식 정책 보수성).

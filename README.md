@@ -5,7 +5,8 @@ Logan 전용 로컬 MD 워크스페이스. WSL Ubuntu 안에서 FastAPI가 마�
 ## Phase 1 제공 범위
 
 - 네 개 루트를 묶은 단일 파일 트리
-- 마크다운 리더 뷰 (GFM, 코드 하이라이트, Mermaid, KaTeX, 프런트매터 카드, Pretendard 타이포)
+- 마크다운 리더 뷰 (GFM, 코드 하이라이트, Mermaid, KaTeX, 프런트매터 카드, Pretendard 타이포, 읽기 시간 표시, 헤딩 접기, 위키링크 호버 프리뷰)
+- 검색: `/api/search`는 `regex=true`로 안전한 정규식 스캔을 지원 (사이드바 `.*` 토글)
 - systemd user service 또는 nohup 기동
 - Windows Chrome에서 `http://localhost:8787` 접속으로 즉시 사용
 
@@ -86,3 +87,10 @@ Vite dev 서버는 `/api`를 백엔드로 프록시한다.
 ## 라이선스
 
 개인 사용 전용.
+
+## 개발 테스트
+
+```bash
+cd backend && pytest        # 백엔드
+cd frontend && npm test     # 프런트엔드 (Vitest + React Testing Library)
+```
