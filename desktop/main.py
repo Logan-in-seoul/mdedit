@@ -194,6 +194,13 @@ def _open_error_window(message: str) -> None:
 
 
 def main() -> None:
+    # 정규식 검색 워커(app.regex_worker)가 multiprocessing spawn을 쓴다. PyInstaller로
+    # 얼린 앱에서는 자식 프로세스가 이 실행 파일을 다시 띄우므로, 다른 무엇보다 먼저
+    # freeze_support()가 자식 실행을 가로채야 한다 (안 그러면 자식이 창을 또 연다).
+    import multiprocessing
+
+    multiprocessing.freeze_support()
+
     _setup_logging()
     file_arg = _file_from_argv(sys.argv[1:])
 

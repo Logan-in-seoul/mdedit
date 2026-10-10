@@ -702,6 +702,32 @@ hr {
   gap: 8px;
 }
 
+.flatlist-filter-row {
+  display: flex;
+  gap: 4px;
+}
+
+.flatlist-filter-row .flatlist-filter {
+  flex: 1;
+  min-width: 0;
+}
+
+.regex-toggle {
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--ink-muted, var(--ink));
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.regex-toggle.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .flatlist-filter {
   padding: 7px 10px;
   border: 1px solid var(--line);
@@ -1463,4 +1489,39 @@ body.reading-active .main-inner {
   .scr-label-context { background: #232323; color: #a1a1aa; border-color: #3a3a3a; }
   .scr-label-close   { background: #0d2b1e; color: #6ee7b7; border-color: #155e3f; }
   .scr-label-caution { background: #2b220d; color: #fbbf24; border-color: #5c4400; }
+}
+
+.reading-time {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* 섹션 접기 (v0.8) */
+.reader .body .fold-hidden { display: none; }
+.reader .body .fold-toggle {
+  margin-right: 0.35em; padding: 0 0.2em; border: 0; background: none;
+  color: inherit; opacity: 0; cursor: pointer; font-size: 0.7em; vertical-align: middle;
+}
+.reader .body :is(h1, h2, h3, h4, h5, h6):hover .fold-toggle,
+.reader .body .fold-toggle:focus-visible,
+.reader .body [data-folded="true"] .fold-toggle { opacity: 0.6; }
+
+/* 위키링크 호버 프리뷰 */
+.wiki-preview {
+  position: fixed;
+  z-index: 1000;
+  width: 320px;
+  max-height: 180px;
+  overflow: hidden;
+  padding: 8px 10px;
+  background: var(--surface-raised, #fff);
+  color: var(--ink, #222);
+  border: 1px solid var(--line, #ddd);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  pointer-events: none;
 }

@@ -145,7 +145,9 @@ export async function resolvePath(title: string): Promise<string | null> {
  * WikiLink React 컴포넌트. rehype-react가 `wiki-link` 엘리먼트를 이걸로 매핑.
  * 마운트 시 /api/resolve로 경로를 비동기 조회한다.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { loadPreview } from "../lib/preview";
 
 export function WikiLink({
   title,
@@ -163,7 +165,30 @@ export function WikiLink({
     resolvePath(title).then(setResolvedPath);
   }, [title]);
 
+  const [peek, setPeek] = useState<{ x: number; y: number; text: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const hoverSeq = useRef(0);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
   if (!title) return null;
+
+  const showPreview = (el: HTMLElement) => {
+    if (!resolvedPath) return;
+    const seq = ++hoverSeq.current;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      const text = await loadPreview(resolvedPath);
+      if (seq !== hoverSeq.current || !text) return;
+      const r = el.getBoundingClientRect();
+      setPeek({ x: r.left, y: r.bottom + 6, text });
+    }, 350);
+  };
+  const hidePreview = () => {
+    hoverSeq.current++;
+    clearTimeout(timer.current);
+    setPeek(null);
+  };
 
   const label = display || title;
   const isLoading = resolvedPath === undefined;
@@ -186,17 +211,35 @@ export function WikiLink({
         .filter(Boolean)
         .join(" ")}
       onClick={handleClick}
+      onMouseEnter={(e) => showPreview(e.currentTarget)}
+      onMouseLeave={hidePreview}
+      onFocus={(e) => showPreview(e.currentTarget)}
+      onBlur={hidePreview}
       title={
         isUnresolved
           ? `파일을 찾을 수 없음: ${title}`
           : resolvedPath
-            ? `열기: ${resolvedPath}`
+            ? undefined // 호버 프리뷰가 대신 표시된다
             : title
       }
       data-wiki-title={title}
       data-wiki-path={resolvedPath ?? undefined}
     >
       {label}
+      {peek &&
+        createPortal(
+          <div
+            className="wiki-preview"
+            role="tooltip"
+            style={{
+              left: Math.max(8, Math.min(peek.x, window.innerWidth - 328)),
+              top: peek.y,
+            }}
+          >
+            {peek.text}
+          </div>,
+          document.body,
+        )}
     </button>
   );
 }

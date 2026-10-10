@@ -12,6 +12,7 @@ export interface FileContent {
   body: string;
   mtime: number;
   size: number;
+  reading?: { words: number; characters: number; minutes: number } | null;
 }
 
 export interface FileEntry {
@@ -100,17 +101,28 @@ export const api = {
     }
     return res;
   },
+  // 위키링크 호버 프리뷰용 — "note-opened" 이벤트를 발생시키지 않는다
+  peek: (virtualPath: string) =>
+    json<FileContent>(`/api/file?path=${encodeURIComponent(virtualPath)}`),
   filesFlat: (limit = 500) =>
     json<FileEntry[]>(`/api/files/flat?limit=${limit}`),
   backlinks: (virtualPath: string, limit = 200) =>
     json<FileEntry[]>(
       `/api/backlinks?path=${encodeURIComponent(virtualPath)}&limit=${limit}`,
     ),
-  search: (q: string, tag?: string, limit = 200, path?: string, type?: string) => {
+  search: (
+    q: string,
+    tag?: string,
+    limit = 200,
+    path?: string,
+    type?: string,
+    regex = false,
+  ) => {
     const params = new URLSearchParams({ q, limit: String(limit) });
     if (tag) params.set("tag", tag);
     if (path) params.set("path", path);
     if (type) params.set("type", type);
+    if (regex) params.set("regex", "true");
     return json<SearchResponse>(`/api/search?${params}`);
   },
   tags: (limit = 500) =>

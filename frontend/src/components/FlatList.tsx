@@ -49,6 +49,8 @@ export function FlatList({ onSelect, selected }: Props) {
   const [searchHits, setSearchHits] = useState<SearchHit[] | null>(null);
   const [mode, setMode] = useState<Mode>("flat");
   const [searching, setSearching] = useState(false);
+  const [regexMode, setRegexMode] = useState(false);
+  const [regexError, setRegexError] = useState(false);
   // wiki-suggest: [[ 입력 후 파일명 필터
   const [wikiQuery, setWikiQuery] = useState("");
   // 별표 경로 목록 (최근 별표 순 — 고정 섹션 순서)
@@ -157,6 +159,7 @@ export function FlatList({ onSelect, selected }: Props) {
 
     setMode("search");
     setSearching(true);
+    setRegexError(false);
 
     debounceRef.current = setTimeout(async () => {
       try {
@@ -180,12 +183,15 @@ export function FlatList({ onSelect, selected }: Props) {
           }
         }
 
-        const textParam = restTokens.join(" ");
-        const res = await api.search(textParam, tagParam, 200, pathParam, typeParam);
+        // 정규식 모드: 쿼리 전체가 패턴이므로 연산자를 해석하지 않는다
+        const res = regexMode
+          ? await api.search(q, undefined, 200, undefined, undefined, true)
+          : await api.search(restTokens.join(" "), tagParam, 200, pathParam, typeParam);
         // 랭킹(제목/파일명/경로 매치 + 최근성 부스트)은 백엔드 점수 모델이 담당한다.
         setSearchHits(res.hits);
       } catch {
         setSearchHits([]);
+        if (regexMode) setRegexError(true);
       } finally {
         setSearching(false);
       }
@@ -194,7 +200,7 @@ export function FlatList({ onSelect, selected }: Props) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [filter]);
+  }, [filter, regexMode]);
 
   const filteredFiles = useMemo(() => {
     if (!files) return [];
@@ -270,6 +276,7 @@ export function FlatList({ onSelect, selected }: Props) {
 
   return (
     <div className="flatlist">
+      <div className="flatlist-filter-row">
       <input
         ref={inputRef}
         type="text"
@@ -298,6 +305,19 @@ export function FlatList({ onSelect, selected }: Props) {
           }
         }}
       />
+      <button
+        type="button"
+        className={`regex-toggle ${regexMode ? "on" : ""}`}
+        onClick={() => setRegexMode((v) => !v)}
+        aria-pressed={regexMode}
+        title="정규식 검색 (대소문자 무시, 위험한 패턴은 거부됩니다)"
+      >
+        .*
+      </button>
+      </div>
+      {regexError && (
+        <div className="flatlist-status">정규식을 사용할 수 없습니다 (잘못되었거나 지원하지 않는 패턴)</div>
+      )}
       {searching && <div className="flatlist-status">검색 중…</div>}
       {mode === "wiki-suggest" ? (
         <div className="flatlist-items wiki-suggest-list">

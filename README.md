@@ -5,7 +5,8 @@ Logan 전용 로컬 MD 워크스페이스. WSL Ubuntu 안에서 FastAPI가 마�
 ## Phase 1 제공 범위
 
 - 네 개 루트를 묶은 단일 파일 트리
-- 마크다운 리더 뷰 (GFM, 코드 하이라이트, Mermaid, KaTeX, 프런트매터 카드, Pretendard 타이포)
+- 마크다운 리더 뷰 (GFM, 코드 하이라이트, Mermaid, KaTeX, 프런트매터 카드, Pretendard 타이포, 읽기 시간 표시, 헤딩 접기, 위키링크 호버 프리뷰)
+- 검색: `/api/search`는 `regex=true`로 정규식 스캔을 지원 (사이드바 `.*` 토글). 매칭은 별도 워커 프로세스에서 돌고 2초 예산을 넘기면 강제 종료되어 `truncated`로 응답
 - systemd user service 또는 nohup 기동
 - Windows Chrome에서 `http://localhost:8787` 접속으로 즉시 사용
 
@@ -77,7 +78,7 @@ Vite dev 서버는 `/api`를 백엔드로 프록시한다.
 - **응답이 없다 (systemd 사용 중)**: `journalctl --user -u mdedit -n 50`으로 로그를 본다.
 - **응답이 없다 (nohup 사용 중)**: `~/.local/state/mdedit/mdedit.log`로 로그를 본다.
 - **config 오류**: `~/.config/mdedit/config.yaml`의 루트 경로가 실제로 존재하는지 확인한다.
-- **Pretendard가 안 뜬다**: 인터넷이 끊겨 CDN 접근이 안 될 때다. 프런트엔드 번들로 옮기는 작업은 Phase 2에서 다룬다.
+- **Pretendard가 안 뜬다**: 폰트는 `frontend/public/fonts/pretendard`에 번들돼 있어 오프라인에서도 동작한다. 프런트엔드를 다시 빌드했는지 확인한다. (KaTeX CSS는 아직 CDN을 사용한다.)
 
 ## 파일 구조
 
@@ -86,3 +87,10 @@ Vite dev 서버는 `/api`를 백엔드로 프록시한다.
 ## 라이선스
 
 개인 사용 전용.
+
+## 개발 테스트
+
+```bash
+cd backend && pytest        # 백엔드
+cd frontend && npm test     # 프런트엔드 (Vitest + React Testing Library)
+```

@@ -70,7 +70,8 @@ def search(
     tag: str | None = Query(None),
     path: str | None = Query(None),
     type: str | None = Query(None),
-    limit: int = Query(200),
+    limit: int = Query(200, ge=1, le=1000),
+    regex: bool = Query(False),
 ) -> SearchResponse:
     try:
         return fts_index.search(
@@ -80,7 +81,12 @@ def search(
             tag=tag or None,
             path_filter=path or None,
             type_filter=type or None,
+            regex=regex,
         )
+    except fts_index.RegexSearchError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except fts_index.regex_worker.RegexWorkerError:
+        raise HTTPException(status_code=503, detail="regex search unavailable")
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
 
@@ -284,14 +290,31 @@ def get_block(path: str, block_id: str):
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
-if _STATIC_DIR.is_dir():
-    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="assets")
 
-    @app.get("/{full_path:path}")
+def mount_static(target: FastAPI, static_dir: Path) -> None:
+    """빌드된 프런트엔드를 서빙한다. assets 외 정적 파일(fonts 등)도 직접 내려준다."""
+    root = static_dir.resolve()
+    target.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
+    @target.get("/{full_path:path}")
     def spa_fallback(full_path: str) -> FileResponse:
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404)
-        index = _STATIC_DIR / "index.html"
+        if full_path:
+            # NUL 바이트(`/x%00y`)나 너무 긴 경로는 resolve/is_file이 ValueError/OSError를
+            # 던진다 — 500 대신 "그런 파일 없음"으로 보고 index.html로 넘긴다.
+            try:
+                candidate = (root / full_path).resolve()
+                found = candidate.is_file() and candidate.is_relative_to(root)
+            except (ValueError, OSError):
+                found = False
+            if found:
+                return FileResponse(candidate)
+        index = root / "index.html"
         if not index.is_file():
             raise HTTPException(status_code=404)
         return FileResponse(index)
+
+
+if _STATIC_DIR.is_dir():
+    mount_static(app, _STATIC_DIR)

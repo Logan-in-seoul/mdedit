@@ -1,0 +1,152 @@
+# 무인 작업 로그 (2026-W41)
+
+브랜치: `unattended/2026-w41` · Logan 부재 기간 2026-10-03 ~ 10-10 (KST)
+
+## 큐
+- [x] 1. Pretendard 로컬 번들
+- [x] 2. 읽기 시간 (words/characters/minutes, 메타데이터 엔드포인트, 에디터 헤더 표시)
+- [x] 3. 정규식 검색 (`regex=true`, 안전한 시간 제한 스캔)
+- [x] 4. 프런트엔드 테스트 하네스 (Vitest + RTL, `.github/workflows` 없음 → 워크플로 생성은 규칙상 금지이므로 보류 사유 기록)
+- [x] 5. 섹션 접기
+- [x] 6. 위키링크 호버 프리뷰
+- [x] 7. 최종 QA
+
+## 2026-10-03 (KST) — 항목 1
+변경 파일
+- `frontend/index.html`: Pretendard CDN 링크를 `/fonts/pretendard/pretendard.css`로 교체
+- `frontend/public/fonts/pretendard/`: v1.3.9 가변 폰트 동적 서브셋(woff2 92개, 약 3MB), CSS(`font-family`를 `Pretendard`로 맞춤), README.txt
+- `backend/app/main.py`: SPA fallback이 `/fonts/*` 등 정적 파일을 index.html로 덮어쓰던 문제 → `mount_static()`으로 분리, 실제 파일 우선 서빙 + 경로 이탈 차단
+- `backend/tests/test_static_serving.py`: 신규 4건
+- `README.md`, `CHANGELOG.md`(Unreleased)
+
+검증
+- `pytest`: 183 passed, 1 skipped
+- `npm ci && npm run build`: 성공, 빌드된 `index.html`에 Pretendard CDN 참조 없음, TestClient로 woff2 200 확인
+- `ruff check .`: 기존 4건(`fs.py` FileEntry 미정의, 테스트 미사용 import) — 이번 변경과 무관, 손대지 않음
+
+Logan 확인 필요
+- KaTeX CSS도 CDN(jsdelivr)을 사용합니다. 항목 범위 밖이라 그대로 두었습니다. 번들 전환이 필요하면 알려 주세요.
+- `fs.py:160`의 `FileEntry` F821은 실제 런타임 버그일 수 있어 별도 확인이 필요합니다.
+
+## 2026-10-04 (KST) — 항목 2
+변경 파일
+- `backend/app/schema.py`, `backend/app/fs.py`: `ReadingStats`, `compute_reading_stats()`, `FileContent.reading` 추가 (`/api/file` 응답에 신규 선택 필드)
+- `backend/tests/test_fs_read.py`: 4건 추가 (영문, 한글, 코드 펜스 제외, read_file 통합)
+- `frontend/src/lib/api.ts`, `components/Reader.tsx`, `styles/global.css`: 본문 상단에 "약 N분 · N자 · N단어" 표시
+- `CHANGELOG.md`
+
+검증
+- `pytest`: 187 passed, 1 skipped
+- `npm run build`: 성공
+
+Logan 확인 필요
+- 별도의 "메타데이터 엔드포인트"가 없어 `/api/file` 응답에 필드를 추가했습니다. 분리가 필요하면 알려 주세요.
+- 속도 상수(CJK 500자/분, 영문 230단어/분)는 일반적인 값으로 정했습니다.
+
+## 2026-10-05 (KST) — 항목 3
+변경 파일
+- `backend/app/index.py`: `compile_safe_regex()`(AST 검사로 위험 패턴 거부), `_search_regex()`(시간 예산 2초·라인 400자·파일당 5건·`limit` 상한), `search(..., regex=False)`
+- `backend/app/main.py`: `/api/search`에 `regex` 쿼리 파라미터, `RegexSearchError` → HTTP 400
+- `backend/tests/test_search_regex.py`: 신규(매치·필터·랭킹·한도·시간 초과·위험 패턴·API)
+- `frontend/src/lib/api.ts`, `components/FlatList.tsx`, `styles/global.css`: `.*` 토글, 거부 시 안내 문구
+- `CHANGELOG.md`
+
+검증
+- `pytest`: 210 passed, 1 skipped
+- `ruff check app tests/test_search_regex.py`: 기존 `fs.py` F821 1건만(변경 무관)
+- `npm run build`: 성공
+
+Logan 확인 필요
+- 안전 정책이 보수적입니다: `(foo|bar)+`처럼 반복 안의 `|`와 `a*b*c*d*`처럼 무한 반복 4개 이상은 거부합니다. 완화가 필요하면 알려 주세요.
+- 파이썬 `re`는 매칭 도중 중단할 수 없어 시간 예산은 라인 단위로 확인합니다. 패턴 제한 + 라인 길이 제한으로 라인당 최악 비용을 묶었습니다.
+- 정규식 모드는 대소문자 무시 고정입니다.
+
+## 2026-10-06 (KST) — 항목 4
+변경 파일
+- `frontend/package.json`, `package-lock.json`: vitest 2, jsdom, @testing-library/react·dom·jest-dom·user-event 추가, `npm test` 스크립트
+- `frontend/vitest.config.ts`, `src/test/setup.ts`: jsdom 환경, 테스트 후 cleanup
+- `frontend/src/components/FlatList.test.tsx`: 신규 6건 (검색창은 별도 컴포넌트가 아니라 `FlatList` 안에 있어 함께 다룸 — 별표 고정 순서·해제·행 선택, 검색 호출·하이라이트, 정규식 토글·거부 문구)
+- `CHANGELOG.md`
+
+검증
+- `npm test`: 6 passed
+- `npx tsc -b`, `npm run build`: 성공
+
+Logan 확인 필요
+- `.github/workflows`가 없지만 규칙상 워크플로 파일은 만들지 않았습니다(pytest + 프런트 build/test CI는 보류). 필요하면 직접 추가하거나 허용해 주세요.
+- 검색창과 별표 목록이 `FlatList` 한 컴포넌트라 테스트도 한 파일입니다.
+
+## 2026-10-07 (KST) — 항목 5
+변경 파일
+- `frontend/src/lib/fold.ts`: `setupFolding()` — 헤딩에 토글 버튼 부착, 하위 헤딩 포함 숨김, 접힘 키(순번:제목)를 노트 경로별 localStorage에 저장·복원, 정리 함수 제공
+- `frontend/src/components/Reader.tsx`: 렌더 완료 후 `setupFolding` 연결
+- `frontend/src/styles/global.css`: 토글 스타일(호버/포커스 시 표시, 접힌 헤딩은 항상 표시)
+- `frontend/src/lib/fold.test.ts`: 신규 3건 (접기·중첩, 저장/복원, 정리)
+- `CHANGELOG.md`
+
+검증
+- `npm test`: 9 passed (기존 6 + 신규 3)
+- `npx tsc -b`, `npm run build`: 성공
+
+Logan 확인 필요
+- 현재 앱에는 편집기(CodeMirror)가 없고 리더 뷰만 있어, "에디터 뷰"를 리더 본문으로 해석했습니다.
+- 접힘 키에 헤딩 순번이 포함되어, 노트 앞부분에 헤딩이 추가/삭제되면 저장된 접힘 상태가 어긋날 수 있습니다(보수적 선택).
+- 접힌 구간 안의 검색 결과 이동/앵커 이동은 자동으로 펼치지 않습니다.
+
+## 2026-10-08 (KST) — 항목 6
+변경 파일
+- `frontend/src/lib/preview.ts`: `previewText()`(헤딩 마커·코드 펜스 제거, 6줄/320자 제한), `loadPreview()`(노트별 캐시, 실패 시 캐시 안 함)
+- `frontend/src/lib/api.ts`: `api.peek()` — `mdedit:note-opened` 이벤트(그래프 패널 갱신)를 발생시키지 않는 파일 조회
+- `frontend/src/components/WikiLink.tsx`: 호버/포커스 350ms 후 포털 팝오버 표시, 해결된 링크의 기본 `title` 툴팁은 제거(중복 방지)
+- `frontend/src/styles/global.css`: `.wiki-preview`
+- `frontend/src/lib/preview.test.ts`(3건), `frontend/src/components/WikiLink.test.tsx`(2건)
+- `CHANGELOG.md`
+
+검증
+- `npm test`: 14 passed (기존 9 + 신규 5)
+- `npx tsc -b`, `npm run build`: 성공
+- 백엔드 변경 없음(pytest 미실행)
+
+Logan 확인 필요
+- 프리뷰는 원문 첫 줄들을 일반 텍스트로 보여 줍니다(마크다운 렌더 없음, XSS 표면 없음). 렌더된 프리뷰가 필요하면 알려 주세요.
+- 터치 기기에는 호버가 없어 표시되지 않습니다.
+
+## 2026-10-09 (KST) — 항목 7 (최종 QA)
+변경 파일
+- `backend/app/fs.py`, `backend/app/index.py`: 이번 브랜치에서 새로 생긴 ruff 경고 4건 정리(`re.S/M/U` 별칭, import 정렬). main 기준선(31건)과 동일해짐
+- `README.md`: 제공 범위(읽기 시간·접기·프리뷰·정규식 검색)와 개발 테스트 명령 추가
+- `PR-DRAFT.md`: 완료 상태로 갱신
+
+검증
+- `pytest`: 210 passed, 1 skipped
+- `ruff check app tests`: 31건(모두 main에도 존재하는 기존 경고)
+- `npm test`: 14 passed, `npm run build`: 성공
+- CHANGELOG Unreleased에 항목 1~6 모두 기재 확인
+
+Logan 확인 필요
+- 위 각 항목의 "확인 필요" 사항 유지(KaTeX CDN, `fs.py` FileEntry F821, CI 워크플로 보류, 정규식 정책 보수성).
+
+## 2026-10-10 (KST) — 복귀 후 검수 수정
+배경
+- 독립 검증에서 정규식 검색이 ReDoS에 뚫리는 것이 재현되었습니다. `(.*)(.*)(.*)\d`, `(?:.{1,99}){1,99}\x00`, `a*a*a*b`가 안전 검사를 통과했고, 시간 예산은 행 사이에서만 확인되어 `rx.search` 한 번(라인 하나에 4초~무한)을 끊지 못했으며, 그동안 GIL 때문에 서버 전체가 멈췄습니다.
+
+변경 파일
+- `backend/app/regex_worker.py`(신규): 정규식 매칭 전용 워커 프로세스(multiprocessing spawn 1개). 서버는 예산 + 0.3초까지만 기다리고, 넘기면 워커를 SIGKILL한 뒤 받은 결과까지를 `truncated`로 응답합니다. 워커 자폭 타이머(SIGALRM), 대기 요청 수 제한(4) 포함
+- `backend/app/index.py`: `_search_regex`가 서버 프로세스에서 매칭하지 않고 워커에 위임. `compile_safe_regex`는 1차 방어로 유지하고, 컴파일 단계 오류도 400으로 처리
+- `backend/app/schema.py`: `SearchResponse.truncated_reason`(`timeout`/`busy`, 신규 필드·하위 호환)
+- `backend/app/main.py`: `limit` 1~1000 제한, 워커 장애 시 503, SPA fallback의 NUL·초장문 경로 500 수정
+- `desktop/main.py`: `multiprocessing.freeze_support()` 한 곳 추가(PyInstaller 앱에서 워커 자식 프로세스가 창을 다시 띄우지 않도록)
+- `frontend/src/test/setup.ts`: `localStorage` 메모리 스텁(Node 26에서 fold 테스트 3건 실패 수정)
+- `backend/tests/test_search_regex_redos.py`(신규 7건), `backend/tests/test_static_serving.py`(2건 추가)
+- `CHANGELOG.md`, `README.md`, `PR-DRAFT.md`
+
+검증
+- 실서버(`python -m app`, 예산 2초, 400자 라인 50개): 세 패턴 모두 2.30초에 `truncated`/`timeout` 응답, 그동안 `/api/health` 약 40회 최대 6.5ms, 직후 정상 검색 0.06초 이내
+- `pytest`: 220 passed (Python 3.13), `ruff check .`: 29건(기존과 동일, 신규 0)
+- `npm run build` 성공, `npm test`: 14 passed (Node 26.0.0, Node 22.23.3 모두 `NODE_OPTIONS` 없이)
+- PyInstaller onedir 콘솔 빌드에서 워커 기동·강제 종료·재기동 확인
+
+Logan 확인 필요
+- 실제 `mdedit.app`(windowed, argv_emulation) 빌드에서는 실행해 보지 못했습니다. 앱 빌드 후 정규식 검색 한 번으로 창이 중복으로 뜨지 않는지 확인 부탁드립니다.
+- 워커는 하나라서, 느린 패턴이 반복 요청되면 그동안 정규식 검색만 `busy`/`timeout`이 되고 CPU 코어 하나를 씁니다(서버의 다른 기능은 영향 없음). 교차 출처 GET 차단(Origin 검사)은 이번 범위에 넣지 않았습니다.
+- 프런트는 `truncated`를 화면에 표시하지 않습니다(기존과 동일).

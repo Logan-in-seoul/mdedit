@@ -6,11 +6,13 @@ mtime 비교로 변경된 파일만 재인덱싱하므로 시작 시 첫 빌드 
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import threading
 import time
 from pathlib import Path
 
+from app import regex_worker
 from app.fs import _extract_title, _is_excluded
 from app.schema import AppConfig, RootConfig, SearchHit, SearchResponse, TagEntry
 from app.tags import extract_tags
@@ -464,6 +466,152 @@ def _paths_with_tag(db: sqlite3.Connection, tag: str) -> set[str]:
     return {p for (p,) in rows}
 
 
+REGEX_MAX_PATTERN_LEN = 200
+REGEX_MAX_UNBOUNDED = 3
+REGEX_LINE_CAP = 400
+REGEX_TIME_BUDGET = 2.0
+
+
+class RegexSearchError(ValueError):
+    """잘못되었거나 위험한 정규식."""
+
+
+try:  # Python 3.11+
+    from re import _constants as _sre_const
+    from re import _parser as _sre_parse
+except ImportError:  # pragma: no cover
+    import sre_constants as _sre_const  # type: ignore
+    import sre_parse as _sre_parse  # type: ignore
+
+
+def compile_safe_regex(pattern: str) -> re.Pattern[str]:
+    """사용자 정규식을 컴파일하되 재앙적 백트래킹 위험 패턴은 거부한다.
+
+    거부: 길이 초과, 역참조, 무한 반복의 중첩, 무한 반복 안의 선택(|),
+    무한 반복 3개 초과. 대소문자는 구분하지 않는다."""
+    if len(pattern) > REGEX_MAX_PATTERN_LEN:
+        raise RegexSearchError("정규식이 너무 깁니다")
+    try:
+        parsed = _sre_parse.parse(pattern, re.IGNORECASE)
+    except re.error as e:
+        raise RegexSearchError(f"잘못된 정규식: {e}") from e
+    unbounded = 0
+
+    def walk(items, in_unbounded: bool) -> None:
+        nonlocal unbounded
+        for op, av in items:
+            if op in (_sre_const.GROUPREF, _sre_const.GROUPREF_EXISTS):
+                raise RegexSearchError("역참조는 지원하지 않습니다")
+            if op in (_sre_const.MAX_REPEAT, _sre_const.MIN_REPEAT,
+                      getattr(_sre_const, "POSSESSIVE_REPEAT", None)):
+                _lo, hi, sub = av
+                is_unb = hi >= 100 or hi == _sre_const.MAXREPEAT
+                if is_unb:
+                    if in_unbounded:
+                        raise RegexSearchError("중첩된 반복은 지원하지 않습니다")
+                    unbounded += 1
+                walk(sub, in_unbounded or is_unb)
+            elif op == _sre_const.BRANCH:
+                if in_unbounded:
+                    raise RegexSearchError("반복 안의 선택(|)은 지원하지 않습니다")
+                for alt in av[1]:
+                    walk(alt, in_unbounded)
+            elif op == _sre_const.SUBPATTERN:
+                walk(av[3], in_unbounded)
+            elif op in (_sre_const.ASSERT, _sre_const.ASSERT_NOT):
+                walk(av[1], in_unbounded)
+
+    walk(parsed, False)
+    if unbounded > REGEX_MAX_UNBOUNDED:
+        raise RegexSearchError("무한 반복(*, +)이 너무 많습니다")
+    try:
+        return re.compile(pattern, re.IGNORECASE)
+    except re.error as e:  # 파싱은 통과하고 컴파일에서 걸리는 경우 (가변 길이 look-behind 등)
+        raise RegexSearchError(f"잘못된 정규식: {e}") from e
+
+
+def _search_regex(
+    db: sqlite3.Connection,
+    query: str,
+    max_hits: int,
+    max_per_file: int,
+    tag: str | None,
+    path_filter: str | None,
+    type_filter: str | None,
+) -> SearchResponse:
+    """정규식 모드: trigram 인덱스를 쓰지 않고 라인을 시간 제한 안에서 스캔한다.
+
+    쿼리 전체가 패턴이므로 `tag:` 등 연산자 접두어는 해석하지 않고, 필터는
+    명시적 파라미터로만 받는다. 시간 예산을 넘기면 지금까지의 결과를 truncated로 돌려준다.
+    `compile_safe_regex`는 1차 방어일 뿐이라(통과하는 다항식 백트래킹 패턴이 있다),
+    이 프로세스에서는 패턴을 컴파일·검사만 하고 매칭은 하지 않는다."""
+    pattern = query.strip()
+    empty = SearchResponse(query=query, total=0, truncated=False, hits=[])
+    if not pattern:
+        return empty
+    compile_safe_regex(pattern)
+
+    allowed: set[str] | None = None
+    for paths in (
+        _paths_with_tag(db, tag) if tag else None,
+        _paths_with_path_filter(db, path_filter) if path_filter else None,
+        _paths_with_type(db, type_filter) if type_filter else None,
+    ):
+        if paths is None:
+            continue
+        allowed = paths if allowed is None else allowed & paths
+        if not allowed:
+            return empty
+
+    if _DB_PATH is None:
+        raise RuntimeError("index db not initialized")
+    # 매칭은 워커 프로세스에서만 돈다 — 예산을 넘기면 워커째 강제 종료된다 (regex_worker 참고)
+    rows, total, reason = regex_worker.scan(
+        _DB_PATH, pattern, allowed, max_per_file, REGEX_LINE_CAP, REGEX_TIME_BUDGET
+    )
+    pad = 60
+    groups: dict[str, dict] = {}
+    for path, line_num, text, name, score, m_start, m_end in rows:
+        group = groups.setdefault(path, {"score": score, "hits": []})
+        before, after = text[:m_start], text[m_end:]
+        before_trim = before[-pad:]
+        prefix = "…" if len(before) > pad else ""
+        suffix = "…" if len(after) > pad else ""
+        snippet = f"{prefix}{before_trim}{text[m_start:m_end]}{after[:pad]}{suffix}"
+        ms = len(prefix) + len(before_trim)
+        group["hits"].append(
+            (
+                line_num,
+                SearchHit(
+                    path=path,
+                    name=name or path.rsplit("/", 1)[-1],
+                    line=line_num,
+                    snippet=snippet,
+                    match_start=ms,
+                    match_end=ms + (m_end - m_start),
+                ),
+            )
+        )
+
+    hits: list[SearchHit] = []
+    over_limit = False
+    for group in sorted(groups.values(), key=lambda g: g["score"]):
+        for _, hit in sorted(group["hits"], key=lambda h: h[0]):
+            if len(hits) >= max_hits:
+                over_limit = True
+                break
+            hits.append(hit)
+        if over_limit:
+            break
+    return SearchResponse(
+        query=query,
+        total=total,
+        truncated=over_limit or reason is not None,
+        hits=hits,
+        truncated_reason=reason,
+    )
+
+
 def search(
     config: AppConfig,
     query: str,
@@ -472,8 +620,13 @@ def search(
     tag: str | None = None,
     path_filter: str | None = None,
     type_filter: str | None = None,
+    regex: bool = False,
 ) -> SearchResponse:
     needle = query.strip()
+    if regex:
+        return _search_regex(
+            get_db(), query, max_hits, max_per_file, tag, path_filter, type_filter
+        )
     # 쿼리에서 모든 연산자를 파싱한다
     text_q, prefix_tag, prefix_path, prefix_type = _extract_operator_prefixes(needle)
     if tag is None:
