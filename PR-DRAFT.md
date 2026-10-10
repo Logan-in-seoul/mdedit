@@ -12,7 +12,13 @@
 ### 최종 QA
 - pytest 210 passed, npm test 14 passed, 빌드 성공, ruff 신규 경고 없음
 
+### 복귀 후 검수 수정 (2026-10-10)
+- 정규식 검색 ReDoS 수정: 매칭을 별도 워커 프로세스로 옮기고 예산 초과 시 강제 종료 (`truncated_reason`)
+- `limit` 1~1000 제한, SPA fallback 500 수정, Node 26에서 fold 테스트 실패 수정
+- pytest 220 passed, npm test 14 passed (Node 22·26), ruff 신규 경고 없음
+
 ### 확인 필요
+- 실제 `mdedit.app` 빌드에서 정규식 검색 시 창 중복 여부(워커 프로세스 + `freeze_support`)
 - KaTeX CSS는 아직 CDN 사용
 - `backend/app/fs.py:160` `FileEntry` 미정의(ruff F821)
 - `.github/workflows`가 없으나 규칙상 CI 파일은 만들지 않음

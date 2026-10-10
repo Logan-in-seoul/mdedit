@@ -6,7 +6,7 @@ Logan 전용 로컬 MD 워크스페이스. WSL Ubuntu 안에서 FastAPI가 마�
 
 - 네 개 루트를 묶은 단일 파일 트리
 - 마크다운 리더 뷰 (GFM, 코드 하이라이트, Mermaid, KaTeX, 프런트매터 카드, Pretendard 타이포, 읽기 시간 표시, 헤딩 접기, 위키링크 호버 프리뷰)
-- 검색: `/api/search`는 `regex=true`로 안전한 정규식 스캔을 지원 (사이드바 `.*` 토글)
+- 검색: `/api/search`는 `regex=true`로 정규식 스캔을 지원 (사이드바 `.*` 토글). 매칭은 별도 워커 프로세스에서 돌고 2초 예산을 넘기면 강제 종료되어 `truncated`로 응답
 - systemd user service 또는 nohup 기동
 - Windows Chrome에서 `http://localhost:8787` 접속으로 즉시 사용
 

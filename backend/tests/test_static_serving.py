@@ -37,3 +37,15 @@ def test_path_traversal_is_not_served(tmp_path: Path):
 
 def test_api_prefix_stays_404(tmp_path: Path):
     assert _client(tmp_path).get("/api/nope").status_code == 404
+
+
+def test_nul_byte_path_falls_back_instead_of_500(tmp_path: Path):
+    r = _client(tmp_path).get("/x%00y")
+    assert r.status_code == 200
+    assert "spa" in r.text
+
+
+def test_overlong_path_falls_back_instead_of_500(tmp_path: Path):
+    client = _client(tmp_path)
+    assert client.get("/" + "a" * 5000).status_code == 200
+    assert client.get("/" + "/".join(["a" * 200] * 20)).status_code == 200

@@ -68,6 +68,8 @@ class SearchResponse(BaseModel):
     total: int
     truncated: bool
     hits: list[SearchHit]
+    # 정규식 모드에서 스캔이 중단된 사유: "timeout"(시간 예산 초과) | "busy"(다른 정규식 검색 진행 중)
+    truncated_reason: str | None = None
 
 
 class OpenRequest(BaseModel):

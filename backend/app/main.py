@@ -70,7 +70,7 @@ def search(
     tag: str | None = Query(None),
     path: str | None = Query(None),
     type: str | None = Query(None),
-    limit: int = Query(200),
+    limit: int = Query(200, ge=1, le=1000),
     regex: bool = Query(False),
 ) -> SearchResponse:
     try:
@@ -85,6 +85,8 @@ def search(
         )
     except fts_index.RegexSearchError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except fts_index.regex_worker.RegexWorkerError:
+        raise HTTPException(status_code=503, detail="regex search unavailable")
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
 
@@ -299,8 +301,14 @@ def mount_static(target: FastAPI, static_dir: Path) -> None:
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404)
         if full_path:
-            candidate = (root / full_path).resolve()
-            if candidate.is_file() and candidate.is_relative_to(root):
+            # NUL 바이트(`/x%00y`)나 너무 긴 경로는 resolve/is_file이 ValueError/OSError를
+            # 던진다 — 500 대신 "그런 파일 없음"으로 보고 index.html로 넘긴다.
+            try:
+                candidate = (root / full_path).resolve()
+                found = candidate.is_file() and candidate.is_relative_to(root)
+            except (ValueError, OSError):
+                found = False
+            if found:
                 return FileResponse(candidate)
         index = root / "index.html"
         if not index.is_file():

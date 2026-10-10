@@ -125,3 +125,28 @@ Logan 확인 필요
 
 Logan 확인 필요
 - 위 각 항목의 "확인 필요" 사항 유지(KaTeX CDN, `fs.py` FileEntry F821, CI 워크플로 보류, 정규식 정책 보수성).
+
+## 2026-10-10 (KST) — 복귀 후 검수 수정
+배경
+- 독립 검증에서 정규식 검색이 ReDoS에 뚫리는 것이 재현되었습니다. `(.*)(.*)(.*)\d`, `(?:.{1,99}){1,99}\x00`, `a*a*a*b`가 안전 검사를 통과했고, 시간 예산은 행 사이에서만 확인되어 `rx.search` 한 번(라인 하나에 4초~무한)을 끊지 못했으며, 그동안 GIL 때문에 서버 전체가 멈췄습니다.
+
+변경 파일
+- `backend/app/regex_worker.py`(신규): 정규식 매칭 전용 워커 프로세스(multiprocessing spawn 1개). 서버는 예산 + 0.3초까지만 기다리고, 넘기면 워커를 SIGKILL한 뒤 받은 결과까지를 `truncated`로 응답합니다. 워커 자폭 타이머(SIGALRM), 대기 요청 수 제한(4) 포함
+- `backend/app/index.py`: `_search_regex`가 서버 프로세스에서 매칭하지 않고 워커에 위임. `compile_safe_regex`는 1차 방어로 유지하고, 컴파일 단계 오류도 400으로 처리
+- `backend/app/schema.py`: `SearchResponse.truncated_reason`(`timeout`/`busy`, 신규 필드·하위 호환)
+- `backend/app/main.py`: `limit` 1~1000 제한, 워커 장애 시 503, SPA fallback의 NUL·초장문 경로 500 수정
+- `desktop/main.py`: `multiprocessing.freeze_support()` 한 곳 추가(PyInstaller 앱에서 워커 자식 프로세스가 창을 다시 띄우지 않도록)
+- `frontend/src/test/setup.ts`: `localStorage` 메모리 스텁(Node 26에서 fold 테스트 3건 실패 수정)
+- `backend/tests/test_search_regex_redos.py`(신규 7건), `backend/tests/test_static_serving.py`(2건 추가)
+- `CHANGELOG.md`, `README.md`, `PR-DRAFT.md`
+
+검증
+- 실서버(`python -m app`, 예산 2초, 400자 라인 50개): 세 패턴 모두 2.30초에 `truncated`/`timeout` 응답, 그동안 `/api/health` 약 40회 최대 6.5ms, 직후 정상 검색 0.06초 이내
+- `pytest`: 220 passed (Python 3.13), `ruff check .`: 29건(기존과 동일, 신규 0)
+- `npm run build` 성공, `npm test`: 14 passed (Node 26.0.0, Node 22.23.3 모두 `NODE_OPTIONS` 없이)
+- PyInstaller onedir 콘솔 빌드에서 워커 기동·강제 종료·재기동 확인
+
+Logan 확인 필요
+- 실제 `mdedit.app`(windowed, argv_emulation) 빌드에서는 실행해 보지 못했습니다. 앱 빌드 후 정규식 검색 한 번으로 창이 중복으로 뜨지 않는지 확인 부탁드립니다.
+- 워커는 하나라서, 느린 패턴이 반복 요청되면 그동안 정규식 검색만 `busy`/`timeout`이 되고 CPU 코어 하나를 씁니다(서버의 다른 기능은 영향 없음). 교차 출처 GET 차단(Origin 검사)은 이번 범위에 넣지 않았습니다.
+- 프런트는 `truncated`를 화면에 표시하지 않습니다(기존과 동일).

@@ -12,6 +12,7 @@ import threading
 import time
 from pathlib import Path
 
+from app import regex_worker
 from app.fs import _extract_title, _is_excluded
 from app.schema import AppConfig, RootConfig, SearchHit, SearchResponse, TagEntry
 from app.tags import extract_tags
@@ -523,7 +524,10 @@ def compile_safe_regex(pattern: str) -> re.Pattern[str]:
     walk(parsed, False)
     if unbounded > REGEX_MAX_UNBOUNDED:
         raise RegexSearchError("무한 반복(*, +)이 너무 많습니다")
-    return re.compile(pattern, re.IGNORECASE)
+    try:
+        return re.compile(pattern, re.IGNORECASE)
+    except re.error as e:  # 파싱은 통과하고 컴파일에서 걸리는 경우 (가변 길이 look-behind 등)
+        raise RegexSearchError(f"잘못된 정규식: {e}") from e
 
 
 def _search_regex(
@@ -538,12 +542,14 @@ def _search_regex(
     """정규식 모드: trigram 인덱스를 쓰지 않고 라인을 시간 제한 안에서 스캔한다.
 
     쿼리 전체가 패턴이므로 `tag:` 등 연산자 접두어는 해석하지 않고, 필터는
-    명시적 파라미터로만 받는다. 시간 예산을 넘기면 지금까지의 결과를 truncated로 돌려준다."""
+    명시적 파라미터로만 받는다. 시간 예산을 넘기면 지금까지의 결과를 truncated로 돌려준다.
+    `compile_safe_regex`는 1차 방어일 뿐이라(통과하는 다항식 백트래킹 패턴이 있다),
+    이 프로세스에서는 패턴을 컴파일·검사만 하고 매칭은 하지 않는다."""
     pattern = query.strip()
     empty = SearchResponse(query=query, total=0, truncated=False, hits=[])
     if not pattern:
         return empty
-    rx = compile_safe_regex(pattern)
+    compile_safe_regex(pattern)
 
     allowed: set[str] | None = None
     for paths in (
@@ -557,46 +563,16 @@ def _search_regex(
         if not allowed:
             return empty
 
-    deadline = time.monotonic() + REGEX_TIME_BUDGET
-    now = time.time()
-    total = 0
-    truncated = False
+    if _DB_PATH is None:
+        raise RuntimeError("index db not initialized")
+    # 매칭은 워커 프로세스에서만 돈다 — 예산을 넘기면 워커째 강제 종료된다 (regex_worker 참고)
+    rows, total, reason = regex_worker.scan(
+        _DB_PATH, pattern, allowed, max_per_file, REGEX_LINE_CAP, REGEX_TIME_BUDGET
+    )
     pad = 60
     groups: dict[str, dict] = {}
-    cur = db.execute(
-        """
-        SELECT lines_fts.path, line_num, text, f.name, f.title, f.mtime
-        FROM lines_fts JOIN files AS f ON f.path = lines_fts.path
-        ORDER BY f.mtime DESC, lines_fts.path, line_num
-        """
-    )
-    for i, (path, line_num, text, name, title, mtime) in enumerate(cur):
-        if i % 256 == 0 and time.monotonic() > deadline:
-            truncated = True
-            break
-        if allowed is not None and path not in allowed:
-            continue
-        text = text[:REGEX_LINE_CAP]
-        m = rx.search(text)
-        if m is None or m.end() == m.start():
-            continue
-        total += 1
-        # 점수: 제목/파일명/경로에 패턴이 걸리면 부스트, 최근성 부스트 (낮을수록 상위)
-        score = 0.0
-        if title and rx.search(title[:REGEX_LINE_CAP]):
-            score -= 5.0
-        if rx.search((name or "")[:REGEX_LINE_CAP]):
-            score -= 3.0
-        age_days = (now - mtime) / 86400 if mtime else 9999
-        if age_days <= 7:
-            score -= 1.0
-        elif age_days <= 30:
-            score -= 0.5
+    for path, line_num, text, name, score, m_start, m_end in rows:
         group = groups.setdefault(path, {"score": score, "hits": []})
-        group["score"] = min(group["score"], score)
-        if len(group["hits"]) >= max_per_file:
-            continue
-        m_start, m_end = m.span()
         before, after = text[:m_start], text[m_end:]
         before_trim = before[-pad:]
         prefix = "…" if len(before) > pad else ""
@@ -618,15 +594,22 @@ def _search_regex(
         )
 
     hits: list[SearchHit] = []
+    over_limit = False
     for group in sorted(groups.values(), key=lambda g: g["score"]):
         for _, hit in sorted(group["hits"], key=lambda h: h[0]):
             if len(hits) >= max_hits:
-                truncated = True
+                over_limit = True
                 break
             hits.append(hit)
-        if len(hits) >= max_hits and truncated:
+        if over_limit:
             break
-    return SearchResponse(query=query, total=total, truncated=truncated, hits=hits)
+    return SearchResponse(
+        query=query,
+        total=total,
+        truncated=over_limit or reason is not None,
+        hits=hits,
+        truncated_reason=reason,
+    )
 
 
 def search(
