@@ -104,6 +104,9 @@ export const api = {
   // 위키링크 호버 프리뷰용 — "note-opened" 이벤트를 발생시키지 않는다
   peek: (virtualPath: string) =>
     json<FileContent>(`/api/file?path=${encodeURIComponent(virtualPath)}`),
+  // 열린 문서의 자동 갱신 확인용. 본문을 받지 않는다.
+  mtime: (virtualPath: string) =>
+    json<{ mtime: number }>(`/api/file/mtime?path=${encodeURIComponent(virtualPath)}`),
   filesFlat: (limit = 500) =>
     json<FileEntry[]>(`/api/files/flat?limit=${limit}`),
   backlinks: (virtualPath: string, limit = 200) =>

@@ -50,6 +50,19 @@ def test_file_endpoint_returns_404_for_missing(configured_client: TestClient):
     assert response.status_code == 404
 
 
+def test_file_mtime_endpoint_returns_mtime_without_body(configured_client: TestClient, tmp_path: Path):
+    target = tmp_path / "common" / "hello.md"
+    target.write_text("# Hello\n\n본문", encoding="utf-8")
+    response = configured_client.get("/api/file/mtime", params={"path": "common://hello.md"})
+    assert response.status_code == 200
+    assert response.json() == {"mtime": int(target.stat().st_mtime)}
+
+
+def test_file_mtime_endpoint_returns_404_for_missing(configured_client: TestClient):
+    response = configured_client.get("/api/file/mtime", params={"path": "common://nope.md"})
+    assert response.status_code == 404
+
+
 def test_config_endpoint_returns_root_names(configured_client: TestClient):
     response = configured_client.get("/api/config")
     assert response.status_code == 200

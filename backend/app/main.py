@@ -7,7 +7,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.fs import (
-    FileNotFoundInVault, build_tree, collect_flat, find_backlinks, read_file,
+    FileNotFoundInVault, build_tree, collect_flat, file_mtime, find_backlinks, read_file,
     register_external, resolve_virtual_path, to_virtual_path,
 )
 from app.schema import (
@@ -50,6 +50,14 @@ def tree() -> list[FileNode]:
 def file(path: str = Query(...)) -> FileContent:
     try:
         return read_file(path, get_config())
+    except FileNotFoundInVault as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/file/mtime")
+def file_mtime_endpoint(path: str = Query(...)) -> dict[str, int]:
+    try:
+        return {"mtime": file_mtime(path, get_config())}
     except FileNotFoundInVault as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
