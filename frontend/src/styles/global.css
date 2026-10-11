@@ -1254,6 +1254,21 @@ body:has(.outline-sidebar) .main-inner {
   color: var(--accent);
 }
 
+/* 읽기 모드 진입 버튼. 아웃라인 토글(right 12px)과 겹치지 않게 왼쪽에 둔다. */
+.reading-enter {
+  position: fixed;
+  top: 12px;
+  right: 46px;
+  z-index: 80;
+  border-radius: 999px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.reading-enter:hover {
+  opacity: 1;
+}
+
 /* 읽기 모드: 사이드바·메타·패널 숨기고 본문만 크게 */
 .app.reading {
   grid-template-columns: 1fr;
