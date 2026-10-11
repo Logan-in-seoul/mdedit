@@ -153,6 +153,17 @@ def read_file(virtual: str, config: AppConfig) -> FileContent:
     )
 
 
+def file_mtime(virtual: str, config: AppConfig) -> int:
+    """본문을 읽지 않고 수정 시각만 본다. 열린 문서의 자동 갱신 확인용."""
+    if virtual.startswith(EXTERNAL_SCHEME):
+        path = resolve_external(virtual)
+    else:
+        path = resolve_virtual_path(virtual, config)
+    if not path.is_file():
+        raise FileNotFoundInVault(f"file not found: {virtual}")
+    return int(path.stat().st_mtime)
+
+
 def _is_excluded(name: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatch(name, pat) for pat in patterns)
 

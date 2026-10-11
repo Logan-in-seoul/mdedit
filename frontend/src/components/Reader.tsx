@@ -63,8 +63,10 @@ export function Reader({ path, scrollToLine, onOpen }: Props) {
       if (busy || document.hidden || mtimeRef.current == null) return;
       busy = true;
       try {
+        const { mtime } = await api.mtime(path);
+        if (cancelled || mtime === mtimeRef.current) return;
         const c = await api.peek(path);
-        if (cancelled || c.mtime === mtimeRef.current) return;
+        if (cancelled) return;
         const node = await renderMarkdown(c.body);
         if (cancelled) return;
         mtimeRef.current = c.mtime;
