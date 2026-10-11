@@ -12,6 +12,12 @@ Logan 전용 로컬 MD 워크스페이스. WSL Ubuntu 안에서 FastAPI가 마�
 
 인덱싱·검색·위키 링크·편집·Claude 통합·Tauri 셸은 Phase 2 이후에 추가된다.
 
+## Windows 시작 메뉴 런처
+
+이 WSL은 systemd user 버스가 없어 mdedit이 nohup으로 뜬다. WSL이 재시작되면 서버가 죽고, 브라우저에서 localhost:8787이 안 열리는 증상으로 나타난다.
+
+시작 메뉴에 `mdedit.cmd`를 두어 클릭 한 번으로 해결한다 (2026-08-24 설치). Windows 검색에서 mdedit을 치면 나오고, 서버가 죽어 있으면 start.sh로 먼저 살린 뒤 브라우저를 연다. 위치는 `C:\Users\Logan\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\mdedit.cmd`.
+
 ## 설치
 
 ```bash

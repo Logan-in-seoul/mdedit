@@ -49,3 +49,8 @@ def test_overlong_path_falls_back_instead_of_500(tmp_path: Path):
     client = _client(tmp_path)
     assert client.get("/" + "a" * 5000).status_code == 200
     assert client.get("/" + "/".join(["a" * 200] * 20)).status_code == 200
+
+
+def test_index_is_revalidated_every_time(tmp_path: Path):
+    r = _client(tmp_path).get("/")
+    assert r.headers["cache-control"] == "no-cache"

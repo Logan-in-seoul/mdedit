@@ -95,10 +95,10 @@ export function Reader({ path, scrollToLine }: Props) {
         </div>
       )}
       {content.frontmatter && (
-        <section className="frontmatter">
-          <h3>frontmatter</h3>
+        <details className="frontmatter">
+          <summary>frontmatter · {Object.keys(content.frontmatter).length}개 항목</summary>
           <pre>{JSON.stringify(content.frontmatter, null, 2)}</pre>
-        </section>
+        </details>
       )}
       <div className="body" ref={bodyRef}>{rendered}</div>
     </article>

@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { FileTree } from "./components/FileTree";
 import { FlatList } from "./components/FlatList";
 import { QuickSwitcher } from "./components/QuickSwitcher";
 import { Reader } from "./components/Reader";
+import { ReaderControls } from "./components/ReaderControls";
+import { ReadingToolbar } from "./components/ReadingToolbar";
 import { api, FileEntry } from "./lib/api";
 import { getScroll, pushRecent, saveScroll, setLastDoc } from "./lib/nav";
 import { useDesktopOpen } from "./lib/useDesktopOpen";
+import { useMeasure } from "./lib/useMeasure";
+import { useReadingMode } from "./lib/useReadingMode";
 
 type ViewMode = "flat" | "tree";
 
@@ -125,8 +129,15 @@ export default function App() {
   // 데스크톱(pywebview) 셸: Finder .md 더블클릭 열기 요청 폴링
   useDesktopOpen(handleSelect);
 
+  // 읽기(발표) 모드 — 문서가 열려 있을 때만, 스위처가 떠 있으면 키를 양보한다
+  const readingMode = useReadingMode(mainRef, selected != null, switcherOpen);
+  const measure = useMeasure();
+
   return (
-    <div className="app">
+    <div
+      className={readingMode.reading ? "app reading" : "app"}
+      style={{ "--reader-scale": readingMode.scale, "--measure": measure.css } as CSSProperties}
+    >
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1
@@ -174,6 +185,7 @@ export default function App() {
         )}
       </aside>
       <main className="main" ref={mainRef} onScroll={handleScroll}>
+        {selected && <ReaderControls mode={readingMode} measure={measure} />}
         <div className="main-inner">
           {selected ? (
             <Reader path={selected} scrollToLine={scrollToLine} />
@@ -182,6 +194,7 @@ export default function App() {
           )}
         </div>
       </main>
+      <ReadingToolbar mode={readingMode} measure={measure} />
       <QuickSwitcher
         open={switcherOpen}
         files={files}
