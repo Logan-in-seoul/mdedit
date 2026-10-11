@@ -58,6 +58,16 @@ export function extractHeadings(markdown: string): OutlineItem[] {
   return items;
 }
 
+// 헤딩 안에 붙는 섹션 접기 토글(fold.ts)의 글리프는 제목이 아니다.
+function headingText(node: Element): string {
+  let text = "";
+  node.childNodes.forEach((child) => {
+    if (child instanceof Element && child.classList.contains("fold-toggle")) return;
+    text += child.textContent || "";
+  });
+  return text.trim();
+}
+
 // Extract headings from a rendered DOM container (the reader body).
 // Each H1-H6 element receives a stable data-outline-id so that clicks can
 // scroll back to it via querySelector.
@@ -67,12 +77,13 @@ export function extractFromDom(container: HTMLElement): OutlineItem[] {
   );
   const items: OutlineItem[] = [];
   nodes.forEach((node, index) => {
-    const text = (node.textContent || "").trim();
+    const text = headingText(node);
     if (!text) return;
     const level = parseInt(node.tagName.slice(1), 10);
     let id = node.getAttribute("data-outline-id");
     if (!id) {
-      id = slugify(text) || `heading-${index}`;
+      // 같은 제목이 반복되어도 각자 자기 자리로 가도록 순번을 붙인다
+      id = `${index}-${slugify(text) || "heading"}`;
       node.setAttribute("data-outline-id", id);
     }
     items.push({ level, text, id, index: items.length });

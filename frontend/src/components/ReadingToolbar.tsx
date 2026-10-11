@@ -1,9 +1,10 @@
 // 읽기 모드 플로팅 툴바. 스타일은 global.css `.reading-toolbar`.
+import { Measure } from "../lib/useMeasure";
 import { ReadingMode } from "../lib/useReadingMode";
 
 const SCALE_STEP = 0.1;
 
-export function ReadingToolbar({ mode }: { mode: ReadingMode }) {
+export function ReadingToolbar({ mode, measure }: { mode: ReadingMode; measure: Measure }) {
   if (!mode.reading) return null;
   return (
     <div className="reading-toolbar" role="toolbar" aria-label="읽기 모드">
@@ -12,6 +13,9 @@ export function ReadingToolbar({ mode }: { mode: ReadingMode }) {
       </button>
       <button onClick={() => mode.jumpBeat(1)} title="다음 발언 (j)">
         ↓
+      </button>
+      <button onClick={measure.cycle} title="줄 너비 바꾸기 (좁게·보통·넓게·전체)">
+        폭 {measure.label}
       </button>
       <button onClick={() => mode.bumpScale(-SCALE_STEP)} title="글자 작게 (-)">
         A−

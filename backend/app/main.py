@@ -313,7 +313,9 @@ def mount_static(target: FastAPI, static_dir: Path) -> None:
         index = root / "index.html"
         if not index.is_file():
             raise HTTPException(status_code=404)
-        return FileResponse(index)
+        # index.html은 해시 없는 유일한 진입점이다. 캐시 지시가 없으면 브라우저가 옛 것을
+        # 들고 있다가 새 빌드를 안 읽는다 — 매번 ETag로 재검증하게 한다.
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 if _STATIC_DIR.is_dir():

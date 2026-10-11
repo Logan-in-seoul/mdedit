@@ -22,7 +22,7 @@
   --mark-ink: #4a3500;
 
   /* 타이포그래피 */
-  --measure: 800px;        /* 본문 측정폭 — 646px은 한글 기준 너무 좁아 확대 (2026-06-08) */
+  --measure: 47em;         /* 본문 줄 너비 기본값. 글자 수 기준이고 App이 사용자 선택값으로 덮는다 (lib/useMeasure.ts) */
   --body-size: 17px;
   --body-leading: 1.78;
   --body-tracking: -0.011em;
@@ -124,8 +124,16 @@ body {
 
 .main-inner {
   padding: 48px 40px 96px;
-  max-width: calc(var(--measure) + 80px);
-  margin: 0 auto;
+}
+
+/* 홈·로딩 화면은 고정 폭, 문서는 글자 수 기준 폭. 옆 패널이 열려도 이 폭은 줄지 않는다. */
+.main-inner > * {
+  max-width: 800px;
+  margin-inline: auto;
+}
+
+.main-inner > .reader {
+  max-width: var(--measure);
 }
 
 .placeholder {
@@ -353,6 +361,9 @@ hr {
 .reader .body {
   line-height: var(--body-leading);
   letter-spacing: var(--body-tracking);
+  /* 한글은 어절 단위로 줄을 바꾼다. 긴 URL 같은 한 덩어리만 중간에서 끊는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
   animation: body-fade 80ms ease-out;
 }
 
@@ -621,22 +632,23 @@ hr {
 
 .frontmatter {
   margin-bottom: 28px;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 8px;
 }
 
-.frontmatter h3 {
-  margin: 0 0 8px;
+.frontmatter summary {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-faint);
+  cursor: pointer;
+  user-select: none;
 }
 
 .frontmatter pre {
-  margin: 0;
+  margin: 8px 0 0;
   background: transparent;
   border: none;
   padding: 0;
@@ -650,11 +662,15 @@ hr {
   color: var(--ink-strong);
   font-weight: 650;
   line-height: 1.35;
+  position: relative;      /* 접기 토글을 왼쪽 여백에 띄우는 기준 */
+  scroll-margin-top: 20px; /* 목차에서 건너뛰었을 때 위에 붙지 않게 */
 }
 
 .reader .body h1 { font-size: 1.65em; margin: 1.6em 0 0.6em; }
 .reader .body h2 { font-size: 1.3em; margin: 2.2em 0 0.55em; }
 .reader .body h3 { font-size: 1.1em; margin: 1.8em 0 0.5em; }
+.reader .body h4 { font-size: 1em; margin: 1.6em 0 0.4em; }
+.reader .body h5, .reader .body h6 { font-size: 0.94em; margin: 1.4em 0 0.4em; color: var(--ink-soft); }
 .reader .body h1:first-child { margin-top: 0; }
 .reader .body p, .reader .body ul, .reader .body ol { margin: 0.9em 0; }
 .reader .body li { margin: 0.3em 0; }
@@ -1003,28 +1019,26 @@ hr {
   border-left-color: var(--accent);
 }
 
-.outline-marker {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--ink-faint);
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
-  width: 18px;
-}
-
+/* 긴 제목은 잘라내지 않고 두 줄까지 보여 준다 */
 .outline-text {
   flex: 1;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
-.outline-l1 .outline-link { padding-left: 8px; font-weight: 600; }
-.outline-l2 .outline-link { padding-left: 20px; }
-.outline-l3 .outline-link { padding-left: 32px; }
-.outline-l4 .outline-link { padding-left: 44px; }
-.outline-l5 .outline-link { padding-left: 56px; font-size: 11.5px; }
-.outline-l6 .outline-link { padding-left: 68px; font-size: 11.5px; }
+/* 레벨은 들여쓰기와 굵기·농도로만 구분한다 */
+.outline-l1 .outline-link { padding-left: 10px; font-weight: 600; color: var(--ink-strong); }
+.outline-l2 .outline-link { padding-left: 10px; }
+.outline-l3 .outline-link { padding-left: 24px; color: var(--ink-soft); }
+.outline-l4 .outline-link { padding-left: 38px; color: var(--ink-soft); font-size: 12px; }
+.outline-l5 .outline-link { padding-left: 52px; color: var(--ink-soft); font-size: 11.5px; }
+.outline-l6 .outline-link { padding-left: 66px; color: var(--ink-soft); font-size: 11.5px; }
+
+.outline-item.outline-active .outline-link { color: var(--accent); }
 
 .outline-toggle {
   position: fixed;
@@ -1051,9 +1065,69 @@ hr {
   border-color: var(--accent);
 }
 
-/* Reader gets right padding so the outline panel doesn't overlap content. */
-body:has(.outline-sidebar) .main-inner {
-  padding-right: 264px;
+/* 목차가 열리면 본문 칸 옆에 자리를 따로 준다. 본문 안쪽 여백을 깎던 방식은 줄 너비를
+   576px까지 줄였다. 창이 좁으면 자리를 주지 않고 목차가 본문 위에 뜬다. */
+@media (min-width: 1100px) {
+  body:not(.reading-active):has(.outline-sidebar) .app {
+    grid-template-columns: 260px minmax(0, 1fr) 240px;
+  }
+}
+
+/* ============ 보기 설정 (줄 너비·글자 크기·읽기 모드) ============ */
+/* 본문 스크롤 영역 우상단에 붙어 따라온다. 목차 패널과 겹치지 않는다. */
+.reader-controls-anchor {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 40;
+}
+
+.reader-controls {
+  position: absolute;
+  top: 12px;
+  right: 52px; /* 접힌 목차 토글(right 12px) 왼쪽 */
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.reader-controls:hover,
+.reader-controls:focus-within {
+  opacity: 1;
+}
+
+.reader-controls button {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reader-controls button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+body:has(.outline-sidebar) .reader-controls {
+  right: 16px;
+}
+
+@media (max-width: 1099px) {
+  body:has(.outline-sidebar) .reader-controls {
+    right: 256px;
+  }
 }
 
 /* Brief flash highlight when scrolling to a heading via outline click. */
@@ -1254,21 +1328,6 @@ body:has(.outline-sidebar) .main-inner {
   color: var(--accent);
 }
 
-/* 읽기 모드 진입 버튼. 아웃라인 토글(right 12px)과 겹치지 않게 왼쪽에 둔다. */
-.reading-enter {
-  position: fixed;
-  top: 12px;
-  right: 46px;
-  z-index: 80;
-  border-radius: 999px;
-  opacity: 0.55;
-  transition: opacity 0.15s;
-}
-
-.reading-enter:hover {
-  opacity: 1;
-}
-
 /* 읽기 모드: 사이드바·메타·패널 숨기고 본문만 크게 */
 .app.reading {
   grid-template-columns: 1fr;
@@ -1279,7 +1338,6 @@ body:has(.outline-sidebar) .main-inner {
 }
 
 .app.reading .main-inner {
-  max-width: 820px;
   padding: 56px 40px 120px;
 }
 
@@ -1305,11 +1363,6 @@ body.reading-active #outline-host,
 body.reading-active .outline-sidebar,
 body.reading-active .outline-toggle {
   display: none !important;
-}
-
-/* 아웃라인이 숨겨지므로 본문 우측 패딩 보정도 해제 */
-body.reading-active .main-inner {
-  padding-right: 40px;
 }
 
 /* 읽기 모드 플로팅 툴바 (글자 크기·인쇄·종료) */
@@ -1376,6 +1429,8 @@ body.reading-active .main-inner {
   .reading-toggle,
   .memo-panel,
   .frontmatter,
+  .reader-controls-anchor,
+  .fold-toggle,
   #outline-host,
   .outline-sidebar,
   .outline-toggle {
@@ -1391,7 +1446,8 @@ body.reading-active .main-inner {
     overflow: visible;
   }
   .main,
-  .main-inner {
+  .main-inner,
+  .main-inner > * {
     max-width: 100%;
     padding: 0;
     margin: 0;
@@ -1514,9 +1570,12 @@ body.reading-active .main-inner {
 
 /* 섹션 접기 (v0.8) */
 .reader .body .fold-hidden { display: none; }
+/* 토글은 왼쪽 여백에 띄운다. 제목 줄 안에 두면 제목이 본문보다 안쪽으로 밀린다. */
 .reader .body .fold-toggle {
-  margin-right: 0.35em; padding: 0 0.2em; border: 0; background: none;
-  color: inherit; opacity: 0; cursor: pointer; font-size: 0.7em; vertical-align: middle;
+  position: absolute; right: 100%; top: 0; height: 1.93em; /* 제목 한 줄 높이(1.35em)를 0.7em 글자로 환산 */
+  display: flex; align-items: center;
+  margin: 0; padding: 0 0.5em 0 0.3em; border: 0; background: none;
+  color: inherit; opacity: 0; cursor: pointer; font-size: 0.7em;
 }
 .reader .body :is(h1, h2, h3, h4, h5, h6):hover .fold-toggle,
 .reader .body .fold-toggle:focus-visible,

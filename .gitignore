@@ -34,3 +34,4 @@ tsconfig.tsbuildinfo
 
 # setuptools build dir (pip install ./backend)
 build/
+.gstack/
