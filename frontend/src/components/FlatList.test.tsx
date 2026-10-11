@@ -67,7 +67,7 @@ describe("FlatList 검색창", () => {
       ],
     });
     render(<FlatList onSelect={() => {}} selected={null} />);
-    const input = await screen.findByPlaceholderText(/개 파일/);
+    const input = await screen.findByPlaceholderText(/파일·본문 검색/);
     fireEvent.change(input, { target: { value: "hello" } });
     await screen.findByText("L3");
     expect(mocked.search).toHaveBeenCalledWith("hello", undefined, 200, undefined, undefined);
@@ -77,7 +77,7 @@ describe("FlatList 검색창", () => {
   it("정규식 토글을 켜면 regex 모드로 검색한다", async () => {
     mocked.search.mockResolvedValue({ query: "a.c", total: 0, truncated: false, hits: [] });
     render(<FlatList onSelect={() => {}} selected={null} />);
-    const input = await screen.findByPlaceholderText(/개 파일/);
+    const input = await screen.findByPlaceholderText(/파일·본문 검색/);
     fireEvent.click(screen.getByRole("button", { name: ".*" }));
     fireEvent.change(input, { target: { value: "a.c" } });
     await screen.findByText("결과 없음");
@@ -87,7 +87,7 @@ describe("FlatList 검색창", () => {
   it("정규식 거부 시 안내 문구를 보여 준다", async () => {
     mocked.search.mockRejectedValue(new Error("400"));
     render(<FlatList onSelect={() => {}} selected={null} />);
-    const input = await screen.findByPlaceholderText(/개 파일/);
+    const input = await screen.findByPlaceholderText(/파일·본문 검색/);
     fireEvent.click(screen.getByRole("button", { name: ".*" }));
     fireEvent.change(input, { target: { value: "(a+)+" } });
     await screen.findByText(/정규식을 사용할 수 없습니다/);
