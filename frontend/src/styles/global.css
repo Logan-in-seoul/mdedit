@@ -85,10 +85,149 @@ body {
   margin-top: auto;
   padding-top: 14px;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.sidebar-version {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.shortcuts summary {
+  color: var(--ink-faint);
+  cursor: pointer;
+  user-select: none;
+}
+
+.shortcuts summary:hover {
+  color: var(--ink-soft);
+}
+
+.shortcuts dl {
+  margin: 8px 0 2px;
+  display: grid;
+  gap: 5px;
+}
+
+.shortcuts dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shortcuts dt {
+  font-family: "JetBrains Mono", "D2Coding", Consolas, monospace;
+  color: var(--ink-soft);
+  white-space: pre;
+}
+
+.shortcuts dd {
+  margin: 0;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+/* 사이드바 접기 */
+.app.no-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app.no-sidebar .sidebar {
+  display: none;
+}
+
+.sidebar-collapse,
+.sidebar-expand {
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar-collapse {
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.sidebar-expand {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 45;
+  opacity: 0.55;
+}
+
+.sidebar-collapse:hover,
+.sidebar-expand:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+/* 읽은 만큼 차는 상단 막대 */
+.read-progress-anchor {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 41;
+}
+
+.read-progress {
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.55;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* 코드 블록 복사 버튼 */
+.code-block {
+  position: relative;
+  margin: 1em 0;
+}
+
+.code-block > pre {
+  margin: 0;
+}
+
+.code-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+  font-family: inherit;
   font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.code-block:hover .code-copy,
+.code-copy:focus-visible {
+  opacity: 1;
+}
+
+.code-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.reading-refreshed {
+  color: var(--accent);
 }
 
 .app-version {
@@ -826,12 +965,17 @@ hr {
   border-left-color: var(--accent);
 }
 
+/* 이름은 두 줄까지 보여 준다. 날짜로 시작하는 긴 파일명이 한 줄에서는 구별되지 않는다. */
 .flatlist-name {
   font-size: 13px;
+  line-height: 1.4;
   color: var(--ink);
-  white-space: nowrap;
+  padding-right: 20px; /* 별표 자리 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .flatlist-row.selected .flatlist-name {
@@ -909,6 +1053,12 @@ hr {
 .tag-chip-hash {
   color: #818cf8;
   font-size: 11px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tag-chip { background: #1e1b4b; border-color: #312e81; color: #a5b4fc; }
+  .tag-chip:hover { background: #29256b; border-color: #4338ca; }
+  .flatlist-status, .search-snippet { color: var(--ink-soft); }
 }
 
 /* ============ Outline sidebar (P3) ============ */
@@ -1071,6 +1221,9 @@ hr {
   body:not(.reading-active):has(.outline-sidebar) .app {
     grid-template-columns: 260px minmax(0, 1fr) 240px;
   }
+  body:not(.reading-active):has(.outline-sidebar) .app.no-sidebar {
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
 }
 
 /* ============ 보기 설정 (줄 너비·글자 크기·읽기 모드) ============ */
@@ -1154,6 +1307,14 @@ body:has(.outline-sidebar) .reader-controls {
 .line-highlight {
   animation: line-flash 2s ease-out forwards;
   border-radius: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  @keyframes line-flash {
+    0%   { background-color: #4a3f10; }
+    60%  { background-color: #4a3f10; }
+    100% { background-color: transparent; }
+  }
 }
 
 /* D-6: Wiki Link [[...]] 스타일 */
@@ -1430,6 +1591,9 @@ body.reading-active .outline-toggle {
   .memo-panel,
   .frontmatter,
   .reader-controls-anchor,
+  .read-progress-anchor,
+  .sidebar-expand,
+  .code-copy,
   .fold-toggle,
   #outline-host,
   .outline-sidebar,

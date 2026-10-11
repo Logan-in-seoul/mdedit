@@ -1,5 +1,5 @@
 import { Fragment, jsx, jsxs } from "react/jsx-runtime";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -61,6 +61,30 @@ const rehypeLineNumbers: Plugin<[], Root> = () => {
     visit(tree);
   };
 };
+
+/** 코드 블록에 복사 버튼을 얹는다. 버튼은 블록에 마우스를 올렸을 때만 보인다. */
+function CodeBlock(props: any) {
+  const ref = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    const text = ref.current?.innerText ?? "";
+    navigator.clipboard
+      .writeText(text.replace(/\n$/, ""))
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {});
+  };
+  return (
+    <div className="code-block">
+      <button type="button" className="code-copy" onClick={copy} aria-label="코드 복사">
+        {copied ? "복사됨" : "복사"}
+      </button>
+      <pre ref={ref} {...props} />
+    </div>
+  );
+}
 
 const highlighter = (await createHighlighterCore({
   themes: [
@@ -157,7 +181,7 @@ const processor = unified()
                 : "";
           return <MermaidBlock code={code.trim()} />;
         }
-        return <pre {...props} />;
+        return <CodeBlock {...props} />;
       },
     },
   });

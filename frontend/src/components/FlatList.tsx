@@ -51,6 +51,7 @@ export function FlatList({ onSelect, selected }: Props) {
   const [searching, setSearching] = useState(false);
   const [regexMode, setRegexMode] = useState(false);
   const [regexError, setRegexError] = useState(false);
+  const [truncated, setTruncated] = useState(false);
   // wiki-suggest: [[ 입력 후 파일명 필터
   const [wikiQuery, setWikiQuery] = useState("");
   // 별표 경로 목록 (최근 별표 순 — 고정 섹션 순서)
@@ -61,17 +62,48 @@ export function FlatList({ onSelect, selected }: Props) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    api
-      .filesFlat(1000)
-      .then(setFiles)
-      .catch((e) => setError(String(e)));
-    api
-      .starred()
-      .then((r) => {
-        setStarredPaths(r.paths);
-        setStarredFiles(r.files ?? []);
-      })
-      .catch(() => {});
+    let last = 0;
+    const load = (initial: boolean) => {
+      last = Date.now();
+      api
+        .filesFlat(1000)
+        .then(setFiles)
+        // 다시 불러오다 실패하면 보던 목록을 그대로 둔다
+        .catch((e) => initial && setError(String(e)));
+      api
+        .starred()
+        .then((r) => {
+          setStarredPaths(r.paths);
+          setStarredFiles(r.files ?? []);
+        })
+        .catch(() => {});
+    };
+    load(true);
+    // 창으로 돌아오면 목록을 다시 받는다. 그 사이 새로 생긴 파일이 새로고침 없이 보인다.
+    const onFocus = () => {
+      if (!document.hidden && Date.now() - last > 10_000) load(false);
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
+
+  // "/" 로 검색창에 바로 들어간다 (다른 입력 중이 아닐 때)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || el?.isContentEditable) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const toggleStar = (path: string, e: MouseEvent) => {
@@ -154,6 +186,7 @@ export function FlatList({ onSelect, selected }: Props) {
     if (q.length < 2) {
       setMode("flat");
       setSearchHits(null);
+      setTruncated(false);
       return;
     }
 
@@ -189,8 +222,10 @@ export function FlatList({ onSelect, selected }: Props) {
           : await api.search(restTokens.join(" "), tagParam, 200, pathParam, typeParam);
         // 랭킹(제목/파일명/경로 매치 + 최근성 부스트)은 백엔드 점수 모델이 담당한다.
         setSearchHits(res.hits);
+        setTruncated(res.truncated);
       } catch {
         setSearchHits([]);
+        setTruncated(false);
         if (regexMode) setRegexError(true);
       } finally {
         setSearching(false);
@@ -271,7 +306,7 @@ export function FlatList({ onSelect, selected }: Props) {
 
   const placeholder =
     files.length > 0
-      ? `${files.length}개 파일 — 검색: tag: path: type: 연산자 지원`
+      ? "파일·본문 검색  ( / )"
       : "파일 없음";
 
   return (
@@ -282,9 +317,16 @@ export function FlatList({ onSelect, selected }: Props) {
         type="text"
         className="flatlist-filter"
         placeholder={placeholder}
+        title={`최근 ${files.length}개 파일. tag: path: type: 로 좁힐 수 있습니다. Esc로 지웁니다.`}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            setFilter("");
+            e.currentTarget.blur();
+            return;
+          }
           if (e.ctrlKey && e.key === "Enter") {
             e.preventDefault();
             // Ctrl+Enter: copy [[filename]] of selected or first visible file
@@ -319,6 +361,9 @@ export function FlatList({ onSelect, selected }: Props) {
         <div className="flatlist-status">정규식을 사용할 수 없습니다 (잘못되었거나 지원하지 않는 패턴)</div>
       )}
       {searching && <div className="flatlist-status">검색 중…</div>}
+      {mode === "search" && truncated && !searching && (
+        <div className="flatlist-status">결과가 많아 일부만 보입니다. 검색어를 더 구체적으로 적어 보세요.</div>
+      )}
       {mode === "wiki-suggest" ? (
         <div className="flatlist-items wiki-suggest-list">
           <div className="flatlist-status wiki-suggest-hint">
