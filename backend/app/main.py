@@ -28,6 +28,7 @@ _config: AppConfig | None = None
 def set_config(config: AppConfig) -> None:
     global _config
     _config = config
+    _flat_cache["at"] = 0.0  # 설정이 바뀌면 목록 캐시를 버린다
 
 
 def get_config() -> AppConfig:
@@ -62,9 +63,30 @@ def file_mtime_endpoint(path: str = Query(...)) -> dict[str, int]:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+# 홈 전체를 훑어 12초쯤 걸린다(2026-11-04, 1,000개). 화면 두 곳과 창 복귀 때마다 부르면
+# 요청이 쌓여 색인과 겹칠 때 끝나지 않았다. 한 번 훑은 결과를 잠시 나눠 쓰고, 동시에 온
+# 요청은 같은 스캔을 기다린다.
+_FLAT_TTL = 60.0
+_flat_lock = threading.Lock()
+_flat_cache: dict = {"at": 0.0, "limit": 0, "rows": []}
+
+
+def _flat_cached(limit: int) -> list[FileEntry]:
+    import time as _time
+    with _flat_lock:
+        c = _flat_cache
+        fresh = _time.monotonic() - c["at"] < _FLAT_TTL
+        if not (fresh and (c["limit"] <= 0 or (0 < limit <= c["limit"]))):
+            c["rows"] = collect_flat(get_config(), limit=limit)
+            c["limit"] = limit
+            c["at"] = _time.monotonic()
+        rows = c["rows"]
+    return rows[:limit] if limit > 0 else rows
+
+
 @app.get("/api/files/flat", response_model=list[FileEntry])
 def files_flat(limit: int = 500) -> list[FileEntry]:
-    return collect_flat(get_config(), limit=limit)
+    return _flat_cached(limit)
 
 
 @app.get("/api/files/library", response_model=list[FileEntry])
