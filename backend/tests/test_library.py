@@ -19,6 +19,8 @@ def client(tmp_path: Path) -> TestClient:
     (root / "research.md").write_text("---\ntype: 조사\n---\n# 조사\n", encoding="utf-8")
     (root / "draft.md").write_text("# 중간 작업\n", encoding="utf-8")
     (root / "study.md").write_text("---\ntype: 학습\n---\n# 학습노트\n", encoding="utf-8")
+    (root / "scr-extre-2026-10-12.md").write_text("# 이름으로만 대본\n", encoding="utf-8")
+    (root / "회의-대본-메모.md").write_text("---\ntype: feedback\n---\n# 명시 유형이 이름을 이긴다\n", encoding="utf-8")
     fts_index.init_db(tmp_path / "state")
     cfg = AppConfig(roots=[RootConfig(name="home", path=root)])
     fts_index.refresh(cfg)
@@ -32,12 +34,13 @@ def test_library_returns_only_typed(client: TestClient) -> None:
     r = client.get("/api/files/library")
     assert r.status_code == 200
     got = {f["name"]: f["type"] for f in r.json()}
-    assert got == {"script.md": "대본", "research.md": "조사", "study.md": "학습"}
+    assert got == {"script.md": "대본", "research.md": "조사", "study.md": "학습",
+                   "scr-extre-2026-10-12.md": "대본"}
 
 
 def test_library_types_param(client: TestClient) -> None:
     r = client.get("/api/files/library", params={"types": "대본"})
-    assert [f["name"] for f in r.json()] == ["script.md"]
+    assert sorted(f["name"] for f in r.json()) == ["scr-extre-2026-10-12.md", "script.md"]
 
 
 def test_star_reindexes_so_new_type_shows(client: TestClient) -> None:

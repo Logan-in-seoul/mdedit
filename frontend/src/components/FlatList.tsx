@@ -58,7 +58,7 @@ export function FlatList({ onSelect, selected }: Props) {
   const [starredPaths, setStarredPaths] = useState<string[]>([]);
   // 별표 파일 메타데이터 — 최근 목록(files) 밖의 오래된 별표도 고정 섹션에 그린다
   const [starredFiles, setStarredFiles] = useState<FileEntry[]>([]);
-  // 자료함: frontmatter type(대본·조사)으로 표시한 파일만. 중간 작업 .md 와 가른다.
+  // 자료함: frontmatter type, 없으면 이름 규칙(backend/app/libtype.py)으로 고른 대본·조사·학습. 중간 작업 .md 와 가른다.
   const [libraryFiles, setLibraryFiles] = useState<FileEntry[] | null>(null);
   const [view, setView] = useState<"library" | "all">(() => {
     try {
@@ -347,7 +347,7 @@ export function FlatList({ onSelect, selected }: Props) {
           aria-selected={view === "library"}
           className={view === "library" ? "active" : ""}
           onClick={() => switchView("library")}
-          title="frontmatter 에 type: 대본, 조사, 학습 중 하나가 있는 파일만"
+          title="대본, 조사, 학습. frontmatter 의 type: 이 먼저이고, 없으면 파일 이름으로 고릅니다"
         >
           자료함{libraryFiles ? ` ${libraryFiles.length}` : ""}
         </button>
