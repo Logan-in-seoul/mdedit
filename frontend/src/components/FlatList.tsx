@@ -58,6 +58,15 @@ export function FlatList({ onSelect, selected }: Props) {
   const [starredPaths, setStarredPaths] = useState<string[]>([]);
   // 별표 파일 메타데이터 — 최근 목록(files) 밖의 오래된 별표도 고정 섹션에 그린다
   const [starredFiles, setStarredFiles] = useState<FileEntry[]>([]);
+  // 자료함: frontmatter type(대본·조사)으로 표시한 파일만. 중간 작업 .md 와 가른다.
+  const [libraryFiles, setLibraryFiles] = useState<FileEntry[] | null>(null);
+  const [view, setView] = useState<"library" | "all">(() => {
+    try {
+      return localStorage.getItem("mdedit.listView") === "all" ? "all" : "library";
+    } catch {
+      return "library";
+    }
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -70,6 +79,10 @@ export function FlatList({ onSelect, selected }: Props) {
         .then(setFiles)
         // 다시 불러오다 실패하면 보던 목록을 그대로 둔다
         .catch((e) => initial && setError(String(e)));
+      api
+        .filesLibrary()
+        .then(setLibraryFiles)
+        .catch(() => setLibraryFiles((prev) => prev ?? []));
       api
         .starred()
         .then((r) => {
@@ -237,16 +250,29 @@ export function FlatList({ onSelect, selected }: Props) {
     };
   }, [filter, regexMode]);
 
+  // 자료함이 비어 있으면 전체를 보여 준다. 표시한 파일이 하나도 없을 때 빈 목록으로 막지 않는다.
+  const libraryActive = view === "library" && (libraryFiles?.length ?? 0) > 0;
+  const baseFiles = libraryActive ? libraryFiles : files;
+
+  const switchView = (v: "library" | "all") => {
+    setView(v);
+    try {
+      localStorage.setItem("mdedit.listView", v);
+    } catch {
+      /* 저장이 막혀도 보기 전환은 된다 */
+    }
+  };
+
   const filteredFiles = useMemo(() => {
-    if (!files) return [];
+    if (!baseFiles) return [];
     const q = filter.trim().toLowerCase();
-    if (!q || q.length < 2) return files;
+    if (!q || q.length < 2) return baseFiles;
     // 파일명 필터 (flat 모드에서만 사용)
-    return files.filter(
+    return baseFiles.filter(
       (f) =>
         f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q),
     );
-  }, [files, filter]);
+  }, [baseFiles, filter]);
 
   const starredSet = useMemo(() => new Set(starredPaths), [starredPaths]);
 
@@ -285,7 +311,10 @@ export function FlatList({ onSelect, selected }: Props) {
         onClick={() => onSelect(f.path)}
         title={f.path}
       >
-        <div className="flatlist-name">{f.title || f.name}</div>
+        <div className="flatlist-name">
+          {f.type && <span className="flatlist-type">{f.type}</span>}
+          {f.title || f.name}
+        </div>
         <div className="flatlist-meta">
           <span className="flatlist-time">{formatRelative(f.mtime)}</span>
           <span className="flatlist-path">
@@ -311,6 +340,29 @@ export function FlatList({ onSelect, selected }: Props) {
 
   return (
     <div className="flatlist">
+      <div className="flatlist-view-toggle" role="tablist">
+        <button
+          role="tab"
+          aria-selected={view === "library"}
+          className={view === "library" ? "active" : ""}
+          onClick={() => switchView("library")}
+          title="frontmatter 에 type: 대본 또는 type: 조사 가 있는 파일만"
+        >
+          자료함{libraryFiles ? ` ${libraryFiles.length}` : ""}
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === "all"}
+          className={view === "all" ? "active" : ""}
+          onClick={() => switchView("all")}
+          title="최근 수정한 .md 전체"
+        >
+          전체
+        </button>
+      </div>
+      {view === "library" && libraryFiles && libraryFiles.length === 0 && (
+        <div className="flatlist-hint">자료함이 비어 있어 전체를 보여 줍니다. 파일 맨 위에 type: 대본 을 넣으면 여기로 옵니다.</div>
+      )}
       <div className="flatlist-filter-row">
       <input
         ref={inputRef}
@@ -430,7 +482,7 @@ export function FlatList({ onSelect, selected }: Props) {
             <>
               <div className="flatlist-section-label">★ 고정</div>
               {pinnedFiles.map((f) => renderFileRow(f, true))}
-              <div className="flatlist-section-label">전체</div>
+              <div className="flatlist-section-label">{libraryActive ? "자료함" : "전체"}</div>
             </>
           )}
           {filteredFiles

@@ -52,6 +52,7 @@ class FileEntry(BaseModel):
     mtime: int
     size: int
     title: str | None = None
+    type: str | None = None
 
 
 class SearchHit(BaseModel):

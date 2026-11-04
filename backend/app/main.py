@@ -67,6 +67,37 @@ def files_flat(limit: int = 500) -> list[FileEntry]:
     return collect_flat(get_config(), limit=limit)
 
 
+@app.get("/api/files/library", response_model=list[FileEntry])
+def files_library(types: str = Query("대본,조사")) -> list[FileEntry]:
+    """자료함: frontmatter type 으로 명시 표시한 파일만. 디스크에서 지워진 것은 뺀다."""
+    try:
+        rows = fts_index.list_files_by_types(types.split(","))
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+    cfg = get_config()
+    roots = {r.name: Path(r.path) for r in cfg.roots}
+    out: list[FileEntry] = []
+    for r in rows:
+        root_name, rel = r["path"].split("://", 1)
+        base = roots.get(root_name)
+        if base is None or not (base / rel).is_file():
+            continue
+        out.append(FileEntry(**r))
+    return out
+
+
+@app.put("/api/index/file")
+def index_file(path: str = Query(...)) -> dict:
+    """파일 하나를 다시 색인한다. 새로 쓰거나 frontmatter 를 바꾼 직후 부른다."""
+    try:
+        ok = fts_index.index_single(path, get_config())
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="index not ready")
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"not a markdown file: {path}")
+    return {"ok": True, "path": path}
+
+
 @app.get("/api/backlinks", response_model=list[FileEntry])
 def backlinks(path: str = Query(...), limit: int = 200) -> list[FileEntry]:
     return find_backlinks(path, get_config(), limit=limit)
@@ -122,11 +153,10 @@ def starred_list() -> dict:
 @app.put("/api/starred")
 def starred_add(path: str = Query(...)) -> dict:
     try:
+        # 별표는 보통 파일을 막 쓴 직후에 건다. 새 파일이거나 frontmatter type 이
+        # 바뀌었을 수 있으니 먼저 단건 색인해 자료함에도 바로 보이게 한다.
+        fts_index.index_single(path, get_config())
         ok = fts_index.star(path)
-        if not ok:
-            # 마지막 refresh 이후 생성된 파일 — 디스크에 실존하면 즉석 인덱싱 후 재시도
-            if fts_index.index_single(path, get_config()):
-                ok = fts_index.star(path)
     except RuntimeError:
         raise HTTPException(status_code=503, detail="index not ready")
     if not ok:
