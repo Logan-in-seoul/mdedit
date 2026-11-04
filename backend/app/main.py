@@ -90,7 +90,7 @@ def files_flat(limit: int = 500) -> list[FileEntry]:
 
 
 @app.get("/api/files/library", response_model=list[FileEntry])
-def files_library(types: str = Query("대본,조사")) -> list[FileEntry]:
+def files_library(types: str = Query("대본,조사,학습")) -> list[FileEntry]:
     """자료함: frontmatter type 으로 명시 표시한 파일만. 디스크에서 지워진 것은 뺀다."""
     try:
         rows = fts_index.list_files_by_types(types.split(","))

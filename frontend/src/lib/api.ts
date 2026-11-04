@@ -110,7 +110,7 @@ export const api = {
     json<{ mtime: number }>(`/api/file/mtime?path=${encodeURIComponent(virtualPath)}`),
   filesFlat: (limit = 500) =>
     json<FileEntry[]>(`/api/files/flat?limit=${limit}`),
-  filesLibrary: (types = "대본,조사") =>
+  filesLibrary: (types = "대본,조사,학습") =>
     json<FileEntry[]>(`/api/files/library?types=${encodeURIComponent(types)}`),
   backlinks: (virtualPath: string, limit = 200) =>
     json<FileEntry[]>(

@@ -18,6 +18,7 @@ def client(tmp_path: Path) -> TestClient:
     (root / "script.md").write_text("---\ntype: 대본\n---\n# 대본\n", encoding="utf-8")
     (root / "research.md").write_text("---\ntype: 조사\n---\n# 조사\n", encoding="utf-8")
     (root / "draft.md").write_text("# 중간 작업\n", encoding="utf-8")
+    (root / "study.md").write_text("---\ntype: 학습\n---\n# 학습노트\n", encoding="utf-8")
     fts_index.init_db(tmp_path / "state")
     cfg = AppConfig(roots=[RootConfig(name="home", path=root)])
     fts_index.refresh(cfg)
@@ -31,7 +32,7 @@ def test_library_returns_only_typed(client: TestClient) -> None:
     r = client.get("/api/files/library")
     assert r.status_code == 200
     got = {f["name"]: f["type"] for f in r.json()}
-    assert got == {"script.md": "대본", "research.md": "조사"}
+    assert got == {"script.md": "대본", "research.md": "조사", "study.md": "학습"}
 
 
 def test_library_types_param(client: TestClient) -> None:
