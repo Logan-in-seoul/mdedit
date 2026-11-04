@@ -347,7 +347,7 @@ export function FlatList({ onSelect, selected }: Props) {
           aria-selected={view === "library"}
           className={view === "library" ? "active" : ""}
           onClick={() => switchView("library")}
-          title="frontmatter 에 type: 대본 또는 type: 조사 가 있는 파일만"
+          title="frontmatter 에 type: 대본, 조사, 학습 중 하나가 있는 파일만"
         >
           자료함{libraryFiles ? ` ${libraryFiles.length}` : ""}
         </button>
