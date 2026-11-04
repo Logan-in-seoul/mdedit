@@ -305,33 +305,52 @@ def list_starred_files() -> list[dict]:
 
 
 def list_files_by_types(types: list[str]) -> list[dict]:
-    """frontmatter `type` 이 types 중 하나인 파일을 최근 수정순으로 반환한다.
+    """자료함 파일을 최근 수정순으로 반환한다.
 
-    자료함 보기용. scr 등이 명시적으로 표시한 산출물만 골라 중간 작업 .md 와 가른다.
+    frontmatter `type` 이 있으면 그 값으로만 판정하고, 없으면 libtype 의 이름 규칙으로 판정한다.
+    이름 규칙으로 들어온 N판 사본은 가장 높은 판만 남긴다.
     """
-    wanted = {f"type:{t.strip().lower()}" for t in types if t.strip()}
+    from . import libtype
+
+    wanted = {t.strip().lower() for t in types if t.strip()}
     if not wanted:
         return []
     db = get_db()
+    # file_tags 는 FTS5 라 path 로 JOIN 하면 행마다 전체를 훑는다(1만 4천 행에서 60초 넘게 걸렸다).
+    # type 토큰이 있는 행만 한 번에 읽어 사전으로 맞춘다.
+    explicit_by_path = {
+        p: blob for p, blob in db.execute(
+            "SELECT path, tags FROM file_tags WHERE file_tags MATCH 'tags:type*'"
+        ).fetchall()
+    }
     rows = db.execute(
         """
-        SELECT f.path, f.name, f.mtime, f.size, f.title, t.tags
-        FROM file_tags t JOIN files f ON f.path = t.path
-        ORDER BY f.mtime DESC, f.path
+        SELECT path, name, mtime, size, title FROM files
+        WHERE path LIKE '%.md'
+        ORDER BY mtime DESC, path
         """
     ).fetchall()
-    out: list[dict] = []
-    for p, n, m, sz, title, blob in rows:
-        if not blob:
+    picked: list[dict] = []
+    auto_paths: list[str] = []
+    for p, n, m, sz, title in rows:
+        rel = p.split("://", 1)[-1]
+        if libtype.excluded(rel):
             continue
-        hit = next((tok for tok in blob.split() if tok.lower() in wanted), None)
-        if hit is None:
+        blob = explicit_by_path.get(p)
+        explicit = next((tok.split(":", 1)[1] for tok in (blob or "").split()
+                         if tok.lower().startswith("type:")), None)
+        if explicit is not None:
+            kind, auto = explicit, False
+        else:
+            kind, auto = libtype.classify(rel), True
+        if not kind or kind.lower() not in wanted:
             continue
-        out.append(
-            {"path": p, "name": n, "mtime": m, "size": sz, "title": title,
-             "type": hit.split(":", 1)[1]}
-        )
-    return out
+        picked.append({"path": p, "name": n, "mtime": m, "size": sz, "title": title, "type": kind})
+        if auto:
+            auto_paths.append(p)
+    keep = set(libtype.keep_latest(auto_paths))
+    drop = set(auto_paths) - keep
+    return [r for r in picked if r["path"] not in drop]
 
 
 def index_single(virtual: str, config: "AppConfig") -> bool:
