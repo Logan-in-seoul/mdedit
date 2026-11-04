@@ -278,13 +278,13 @@ export function FlatList({ onSelect, selected }: Props) {
 
   // 고정 섹션: 별표 순서 유지. 최근 목록(files) 우선, 밖이면 starredFiles 메타데이터로 그린다.
   const pinnedFiles = useMemo(() => {
-    if (!files) return [];
-    const byPath = new Map(files.map((f) => [f.path, f]));
+    if (!baseFiles) return [];
+    const byPath = new Map(baseFiles.map((f) => [f.path, f]));
     const starredByPath = new Map(starredFiles.map((f) => [f.path, f]));
     return starredPaths
       .map((p) => byPath.get(p) ?? starredByPath.get(p))
       .filter((f): f is FileEntry => f != null);
-  }, [files, starredPaths, starredFiles]);
+  }, [baseFiles, starredPaths, starredFiles]);
 
   // wiki-suggest 모드: [[ 이후 입력으로 파일 필터링
   const wikiSuggestFiles = useMemo(() => {
@@ -300,7 +300,8 @@ export function FlatList({ onSelect, selected }: Props) {
   }, [files, wikiQuery, mode]);
 
   if (error) return <div className="placeholder">로드 실패: {error}</div>;
-  if (!files) return <div className="placeholder">로딩 중…</div>;
+  // 자료함이 먼저 오면 전체 목록(홈 전체를 훑어 느리다)을 기다리지 않고 그린다
+  if (!baseFiles) return <div className="placeholder">로딩 중…</div>;
 
   const renderFileRow = (f: FileEntry, pinned: boolean) => {
     const isStarred = starredSet.has(f.path);
@@ -334,7 +335,7 @@ export function FlatList({ onSelect, selected }: Props) {
   };
 
   const placeholder =
-    files.length > 0
+    baseFiles.length > 0
       ? "파일·본문 검색  ( / )"
       : "파일 없음";
 
@@ -369,7 +370,7 @@ export function FlatList({ onSelect, selected }: Props) {
         type="text"
         className="flatlist-filter"
         placeholder={placeholder}
-        title={`최근 ${files.length}개 파일. tag: path: type: 로 좁힐 수 있습니다. Esc로 지웁니다.`}
+        title={`${baseFiles.length}개 파일. tag: path: type: 로 좁힐 수 있습니다. Esc로 지웁니다.`}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         onKeyDown={(e) => {

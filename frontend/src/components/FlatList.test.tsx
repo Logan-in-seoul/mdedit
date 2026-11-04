@@ -107,6 +107,14 @@ describe("FlatList 자료함", () => {
     await screen.findByText("alpha");
   });
 
+  it("전체 목록이 늦어도 자료함을 먼저 그린다", async () => {
+    localStorage.removeItem("mdedit.listView");
+    mocked.filesFlat.mockReturnValue(new Promise(() => {}));
+    mocked.filesLibrary.mockResolvedValue([{ ...entry("gamma"), type: "대본" }]);
+    render(<FlatList onSelect={() => {}} selected={null} />);
+    await screen.findByText("대본");
+  });
+
   it("자료함이 비면 전체를 보여 준다", async () => {
     localStorage.removeItem("mdedit.listView");
     render(<FlatList onSelect={() => {}} selected={null} />);
