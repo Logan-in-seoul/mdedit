@@ -862,6 +862,53 @@ hr {
   gap: 4px;
 }
 
+/* ============ 자료함 / 전체 전환 ============ */
+
+.flatlist-view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-raised);
+}
+
+.flatlist-view-toggle button {
+  flex: 1;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-muted, var(--ink));
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.flatlist-view-toggle button.active {
+  background: var(--accent);
+  color: var(--surface-raised);
+  font-weight: 600;
+}
+
+.flatlist-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.4;
+}
+
+.flatlist-type {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
 .flatlist-filter-row .flatlist-filter {
   flex: 1;
   min-width: 0;

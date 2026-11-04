@@ -304,6 +304,36 @@ def list_starred_files() -> list[dict]:
     ]
 
 
+def list_files_by_types(types: list[str]) -> list[dict]:
+    """frontmatter `type` 이 types 중 하나인 파일을 최근 수정순으로 반환한다.
+
+    자료함 보기용. scr 등이 명시적으로 표시한 산출물만 골라 중간 작업 .md 와 가른다.
+    """
+    wanted = {f"type:{t.strip().lower()}" for t in types if t.strip()}
+    if not wanted:
+        return []
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT f.path, f.name, f.mtime, f.size, f.title, t.tags
+        FROM file_tags t JOIN files f ON f.path = t.path
+        ORDER BY f.mtime DESC, f.path
+        """
+    ).fetchall()
+    out: list[dict] = []
+    for p, n, m, sz, title, blob in rows:
+        if not blob:
+            continue
+        hit = next((tok for tok in blob.split() if tok.lower() in wanted), None)
+        if hit is None:
+            continue
+        out.append(
+            {"path": p, "name": n, "mtime": m, "size": sz, "title": title,
+             "type": hit.split(":", 1)[1]}
+        )
+    return out
+
+
 def index_single(virtual: str, config: "AppConfig") -> bool:
     """가상 경로 하나를 즉석 인덱싱한다. 디스크에 실존하는 .md면 True.
 

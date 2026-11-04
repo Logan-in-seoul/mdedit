@@ -4,6 +4,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 vi.mock("../lib/api", () => ({
   api: {
     filesFlat: vi.fn(),
+    filesLibrary: vi.fn(),
     starred: vi.fn(),
     star: vi.fn(),
     unstar: vi.fn(),
@@ -27,6 +28,7 @@ const mocked = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 beforeEach(() => {
   Object.values(mocked).forEach((f) => f.mockReset());
   mocked.filesFlat.mockResolvedValue([entry("alpha"), entry("beta"), entry("gamma")]);
+  mocked.filesLibrary.mockResolvedValue([]);
   mocked.starred.mockResolvedValue({ paths: ["vault://beta.md"], files: [entry("beta")] });
   mocked.star.mockResolvedValue({});
   mocked.unstar.mockResolvedValue({});
@@ -91,5 +93,24 @@ describe("FlatList 검색창", () => {
     fireEvent.click(screen.getByRole("button", { name: ".*" }));
     fireEvent.change(input, { target: { value: "(a+)+" } });
     await screen.findByText(/정규식을 사용할 수 없습니다/);
+  });
+});
+
+describe("FlatList 자료함", () => {
+  it("type 표시 파일이 있으면 자료함만 보여 주고 전체로 넘길 수 있다", async () => {
+    localStorage.removeItem("mdedit.listView");
+    mocked.filesLibrary.mockResolvedValue([{ ...entry("gamma"), type: "대본" }]);
+    render(<FlatList onSelect={() => {}} selected={null} />);
+    await screen.findByText("대본");
+    expect(screen.queryByText("alpha")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "전체" }));
+    await screen.findByText("alpha");
+  });
+
+  it("자료함이 비면 전체를 보여 준다", async () => {
+    localStorage.removeItem("mdedit.listView");
+    render(<FlatList onSelect={() => {}} selected={null} />);
+    await screen.findByText("alpha");
+    screen.getByText(/자료함이 비어 있어/);
   });
 });
