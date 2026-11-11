@@ -65,7 +65,8 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  /* minmax(0, 1fr): 넓은 표나 코드 블록이 본문 칸을 창 밖으로 밀지 않게 한다 */
+  grid-template-columns: 260px minmax(0, 1fr);
   grid-template-rows: 100%;
   height: 100dvh;
   overflow: hidden;
@@ -262,7 +263,8 @@ body {
 }
 
 .main-inner {
-  padding: 48px 40px 96px;
+  /* 좌우 여백도 창 폭에 따라 20px에서 56px 사이로 움직인다. */
+  padding: 48px clamp(20px, 3vw, 56px) 96px;
 }
 
 /* 홈·로딩 화면은 고정 폭, 문서는 글자 수 기준 폭. 옆 패널이 열려도 이 폭은 줄지 않는다. */
@@ -2062,5 +2064,37 @@ body.reading-active .outline-toggle {
   .change-nav,
   .lightbox {
     display: none !important;
+  }
+}
+
+/* ============ 좁은 화면 (760px 이하: 휴대폰, 창 절반) ============ */
+/* 목록과 목차가 본문 칸을 나눠 가지면 390px 창에서 본문이 130px로 줄었다.
+   목록과 목차는 본문 위에 겹쳐 뜨고, 본문은 창 폭을 다 쓴다. 기준값은 App.tsx NARROW_QUERY와 같다. */
+@media (max-width: 760px) {
+  .app,
+  .app.no-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app:not(.no-sidebar) .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(300px, 86vw);
+    z-index: 60;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.18);
+  }
+
+  .main-inner {
+    padding: 52px 16px 72px;
+  }
+
+  .outline-sidebar {
+    width: min(240px, 80vw);
+  }
+
+  body:has(.outline-sidebar) .reader-controls {
+    right: 16px;
   }
 }

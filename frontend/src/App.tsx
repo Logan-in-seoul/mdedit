@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { isNarrow } from "./lib/narrow";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { FileTree } from "./components/FileTree";
 import { FlatList } from "./components/FlatList";
@@ -28,6 +29,8 @@ function docFromHash(): string | null {
 }
 
 function readCollapsed(): boolean {
+  // 좁은 화면은 본문부터 보여 준다. 저장값은 넓은 화면용으로 남겨 둔다.
+  if (isNarrow()) return true;
   try {
     return localStorage.getItem(SIDEBAR_KEY) === "1";
   } catch {
@@ -91,6 +94,8 @@ export default function App() {
   // 파일 선택: 히스토리 push + 최근/세션 기록
   const handleSelect = useCallback((path: string, line?: number) => {
     setScrollToLine(line ?? null);
+    // 좁은 화면에서 목록은 본문을 덮고 있으니 문서를 고르면 닫는다. 저장값은 건드리지 않는다.
+    if (isNarrow()) setCollapsed(true);
     setSelected((prev) => {
       if (path !== prev) {
         if (!navigatingRef.current) {
