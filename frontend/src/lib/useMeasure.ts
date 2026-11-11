@@ -3,9 +3,12 @@
 
 import { useCallback, useState } from "react";
 
-const MEASURE_KEY = "mdedit:measure";
+// v2: 기본값을 화면 폭에 맞추는 「자동」으로 바꾸면서 예전 저장값(보통 47em)을 버린다.
+const MEASURE_KEY = "mdedit:measure:v2";
 
 export const MEASURES = [
+  // 본문 칸 폭을 그대로 쓴다. 창을 줄이면 같이 줄어든다. 2,844px 창에서 92em 상한이 본문을 60%로 묶었다.
+  { id: "auto", label: "자동", css: "100%" },
   { id: "narrow", label: "좁게", css: "40em" },
   { id: "normal", label: "보통", css: "47em" },
   { id: "wide", label: "넓게", css: "62em" },
@@ -14,7 +17,7 @@ export const MEASURES = [
 
 export type MeasureId = (typeof MEASURES)[number]["id"];
 
-const DEFAULT_ID: MeasureId = "normal";
+const DEFAULT_ID: MeasureId = "auto";
 
 function readInitial(): MeasureId {
   try {
@@ -29,7 +32,7 @@ export interface Measure {
   id: MeasureId;
   label: string;
   css: string;
-  /** 좁게, 보통, 넓게, 전체 순서로 돈다. */
+  /** 자동, 좁게, 보통, 넓게, 전체 순서로 돈다. */
   cycle: () => void;
 }
 
@@ -49,6 +52,6 @@ export function useMeasure(): Measure {
     });
   }, []);
 
-  const current = MEASURES.find((m) => m.id === id) ?? MEASURES[1];
+  const current = MEASURES.find((m) => m.id === id) ?? MEASURES[0];
   return { id: current.id, label: current.label, css: current.css, cycle };
 }

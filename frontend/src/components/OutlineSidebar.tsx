@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isNarrow } from "../lib/narrow";
 import { extractFromDom, OutlineItem } from "../lib/outline";
 
 // OutlineSidebar mounts as a fixed-position panel docked to the right edge.
@@ -20,7 +21,8 @@ function sameItems(a: OutlineItem[], b: OutlineItem[]): boolean {
 }
 
 function readInitialVisible(): boolean {
-  // 기본 표시 (v0.8) — 명시적으로 닫은 적 있을 때만 숨김
+  // 기본 표시 (v0.8) — 명시적으로 닫은 적 있을 때만 숨김. 좁은 화면은 본문을 가리므로 접고 시작한다.
+  if (isNarrow()) return false;
   try {
     return localStorage.getItem(OUTLINE_VISIBLE_KEY) !== "0";
   } catch {
@@ -154,6 +156,8 @@ export function OutlineSidebar() {
     lockUntilRef.current = Date.now() + CLICK_LOCK_MS;
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     setActiveId(item.id);
+    // 좁은 화면에서 목차는 본문을 덮으므로 항목을 고르면 닫는다. 저장값은 넓은 화면용이라 건드리지 않는다.
+    if (isNarrow()) setVisible(false);
     // Brief highlight pulse so the user notices the jump target.
     target.classList.add("outline-flash");
     window.setTimeout(() => target.classList.remove("outline-flash"), 1200);

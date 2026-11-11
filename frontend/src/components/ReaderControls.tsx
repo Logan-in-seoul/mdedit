@@ -16,7 +16,7 @@ export function ReaderControls({ mode, measure }: Props) {
   return (
     <div className="reader-controls-anchor">
       <div className="reader-controls" role="toolbar" aria-label="보기 설정">
-        <button onClick={measure.cycle} title="줄 너비 바꾸기 (좁게·보통·넓게·전체)">
+        <button onClick={measure.cycle} title="줄 너비 바꾸기 (자동·좁게·보통·넓게·전체)">
           폭 {measure.label}
         </button>
         <button onClick={() => mode.bumpScale(-SCALE_STEP)} title="글자 작게">

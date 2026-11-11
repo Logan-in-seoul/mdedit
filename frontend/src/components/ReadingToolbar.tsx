@@ -14,7 +14,7 @@ export function ReadingToolbar({ mode, measure }: { mode: ReadingMode; measure: 
       <button onClick={() => mode.jumpBeat(1)} title="다음 발언 (j)">
         ↓
       </button>
-      <button onClick={measure.cycle} title="줄 너비 바꾸기 (좁게·보통·넓게·전체)">
+      <button onClick={measure.cycle} title="줄 너비 바꾸기 (자동·좁게·보통·넓게·전체)">
         폭 {measure.label}
       </button>
       <button onClick={() => mode.bumpScale(-SCALE_STEP)} title="글자 작게 (-)">
