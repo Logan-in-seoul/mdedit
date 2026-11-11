@@ -102,6 +102,75 @@ def resolve_external(virtual: str) -> Path:
     return p
 
 
+# ============ 문서 안 그림 (v0.11) ============
+# 문서가 `![](workflows/fig1.png)`처럼 상대 경로로 거는 그림을 내려준다. 전에는 이 주소가
+# SPA 폴백으로 index.html을 받아 그림 자리가 빈 칸이 됐다. 그림과 미디어 확장자만 허용하고,
+# 루트 안이거나 ext://로 연 문서와 같은 폴더(그 아래)에 있는 파일만 내준다.
+ASSET_TYPES: dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".avif": "image/avif",
+    ".bmp": "image/bmp",
+    ".ico": "image/x-icon",
+    ".svg": "image/svg+xml",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".pdf": "application/pdf",
+}
+
+
+def _within_roots(p: Path, config: AppConfig) -> bool:
+    for root in config.roots:
+        try:
+            p.relative_to(root.path.resolve())
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def _within_external_dirs(p: Path) -> bool:
+    with _EXTERNAL_LOCK:
+        dirs = [Path(f).parent for f in _EXTERNAL_FILES]
+    for d in dirs:
+        try:
+            p.relative_to(d.resolve())
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def resolve_asset(virtual: str | None, abs_path: str | None, config: AppConfig) -> tuple[Path, str]:
+    """그림 파일의 실제 경로와 MIME 형식을 돌려준다. 허용 밖이면 FileNotFoundInVault."""
+    if virtual:
+        if virtual.startswith(EXTERNAL_SCHEME):
+            candidate = Path(virtual[len(EXTERNAL_SCHEME):])
+        else:
+            candidate = resolve_virtual_path(virtual, config)
+    elif abs_path:
+        candidate = Path(abs_path).expanduser()
+    else:
+        raise FileNotFoundInVault("asset path missing")
+    if not candidate.is_absolute():
+        raise FileNotFoundInVault(f"not an absolute path: {candidate}")
+    try:
+        p = candidate.resolve()
+    except (OSError, ValueError) as exc:
+        raise FileNotFoundInVault(f"bad asset path: {candidate}") from exc
+    mime = ASSET_TYPES.get(p.suffix.lower())
+    if mime is None:
+        raise FileNotFoundInVault(f"not a media file: {p.name}")
+    if not (_within_roots(p, config) or _within_external_dirs(p)):
+        raise FileNotFoundInVault(f"asset outside roots: {p}")
+    if not p.is_file():
+        raise FileNotFoundInVault(f"file not found: {p}")
+    return p, mime
+
+
 def _extract_title(body: str) -> str | None:
     for line in body.splitlines():
         stripped = line.strip()

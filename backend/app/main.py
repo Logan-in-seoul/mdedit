@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.fs import (
     FileNotFoundInVault, build_tree, collect_flat, file_mtime, find_backlinks, read_file,
-    register_external, resolve_virtual_path, to_virtual_path,
+    register_external, resolve_asset, resolve_virtual_path, to_virtual_path,
 )
 from app.schema import (
     AppConfig, BlockResponse, EmbedResponse, FileContent, FileEntry, FileNode,
@@ -19,7 +19,7 @@ from app.wikilinks import resolve_title
 from app.graph import build_graph
 from app.blocks import extract_blocks
 
-app = FastAPI(title="mdedit", version="0.10.0")
+app = FastAPI(title="mdedit", version="0.11.0")
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 _config: AppConfig | None = None
@@ -53,6 +53,24 @@ def file(path: str = Query(...)) -> FileContent:
         return read_file(path, get_config())
     except FileNotFoundInVault as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# SVG는 같은 출처에서 열리면 스크립트를 돌릴 수 있다. 그림으로만 쓰이게 스크립트를 막는다.
+_ASSET_HEADERS = {
+    "Cache-Control": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
+}
+
+
+@app.get("/api/asset")
+def asset(path: str | None = Query(None), abs: str | None = Query(None)) -> FileResponse:
+    """문서 안 그림 파일. 상대 경로 그림은 프런트가 문서 위치로 풀어 path로 보낸다."""
+    try:
+        p, mime = resolve_asset(path, abs, get_config())
+    except FileNotFoundInVault as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return FileResponse(p, media_type=mime, headers=_ASSET_HEADERS)
 
 
 @app.get("/api/file/mtime")

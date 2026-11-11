@@ -481,17 +481,7 @@ hr {
   color: var(--accent);
 }
 
-.mermaid {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0;
-}
-
-.mermaid-error {
-  border: 1px solid #fca5a5;
-  background: #fef2f2;
-  color: #991b1b;
-}
+/* 도식과 그림 스타일은 파일 끝 「그림과 도식 (v0.11)」 절에 모았다 */
 
 .reader {
   font-size: calc(var(--body-size) * var(--reader-scale, 1));
@@ -1809,4 +1799,268 @@ body.reading-active .outline-toggle {
   line-height: 1.5;
   white-space: pre-wrap;
   pointer-events: none;
+}
+
+/* ============ 그림과 도식 (v0.11) ============ */
+/* 다크 화면에서 그림이 흐리게 묻히던 것을 고친다. 그림은 어둡게 깎지 않고 원래 밝기로 두며,
+   흰 바탕을 전제로 만든 그림(투명 PNG, SVG, 작성자 색 Mermaid)은 밝은 판 위에 올린다. */
+:root {
+  --plate: #ffffff;
+  --plate-edge: var(--line);
+  --figure-gap: 1.6em;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --plate: #f7f7f5;
+    --plate-edge: #3a3f47;
+  }
+}
+
+.reader .body img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.reader .body img.md-img {
+  background: var(--plate);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--plate-edge);
+  cursor: zoom-in;
+}
+
+.reader .body .md-figure {
+  margin: var(--figure-gap) 0;
+  text-align: center;
+}
+
+.reader .body .md-figure img.md-img,
+.reader .body .md-figure video {
+  display: block;
+  margin: 0 auto;
+}
+
+.reader .body .md-figure figcaption {
+  margin-top: 0.7em;
+  font-size: 0.86em;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.reader .body video.md-video {
+  max-width: 100%;
+  border-radius: 8px;
+  background: #000;
+}
+
+.reader .body .svg-block img.md-img {
+  padding: 12px;
+}
+
+/* Mermaid: 화면 테마마다 따로 그린다 (MermaidBlock.tsx). 넓은 도식은 가로로 넘긴다. */
+.reader .body .mermaid,
+.mermaid {
+  display: flex;
+  justify-content: center;
+  margin: var(--figure-gap) 0;
+  padding: 18px 12px;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: zoom-in;
+}
+.mermaid:empty {
+  min-height: 120px;
+}
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+/* 작성자가 색을 정한 도식은 라이트 색 그대로 밝은 판 위에 */
+.mermaid.mermaid-authored {
+  background: var(--plate);
+  box-shadow: 0 0 0 1px var(--plate-edge);
+}
+
+.mermaid-error {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+  white-space: pre-wrap;
+}
+@media (prefers-color-scheme: dark) {
+  .mermaid-error {
+    border-color: #7f2a24;
+    background: #2a1513;
+    color: #f4b4ac;
+  }
+}
+
+/* 표: 숫자 열은 오른쪽 정렬과 고정폭 숫자로 자릿수를 맞춘다 (figures.ts rehypeNumericColumns) */
+.reader .body th.num,
+.reader .body td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.reader .body tbody tr:hover td {
+  background: var(--line-soft);
+}
+
+/* 바뀐 곳 표시: 자동 갱신 뒤 새로 생기거나 바뀐 블록 */
+.reader .body .changed-block {
+  position: relative;
+  border-radius: 4px;
+  animation: changed-flash 2.4s ease-out;
+}
+.reader .body .changed-block::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--change-bar);
+}
+:root { --change-bar: #2f9e6e; --change-tint: rgba(47, 158, 110, 0.16); }
+@media (prefers-color-scheme: dark) {
+  :root { --change-bar: #4fc795; --change-tint: rgba(79, 199, 149, 0.18); }
+}
+@keyframes changed-flash {
+  from { background: var(--change-tint); }
+  to { background: transparent; }
+}
+.change-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 10px;
+}
+.change-nav button {
+  font: inherit;
+  font-size: 0.95em;
+  border: 1px solid var(--change-bar);
+  background: transparent;
+  color: var(--change-bar);
+  border-radius: 999px;
+  padding: 0 9px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.change-nav .change-clear {
+  border: none;
+  padding: 0 6px;
+}
+.change-nav button:hover {
+  background: var(--change-tint);
+}
+
+/* 크게 보기 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 9, 11, 0.94);
+  color: #e8eaed;
+}
+.lightbox-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #2a2d33;
+}
+.lightbox-caption {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c3cad5;
+}
+.lightbox-bar button,
+.lightbox-open {
+  font: inherit;
+  background: #1c1f24;
+  color: #e8eaed;
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  padding: 3px 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.lightbox-bar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.lightbox-scale {
+  min-width: 3.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.lightbox-stage {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+.lightbox-stage.fit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-item {
+  margin: 0 auto;
+  border-radius: 10px;
+  cursor: zoom-out;
+}
+.lightbox-stage.fit .lightbox-item {
+  cursor: zoom-in;
+  max-width: 100%;
+  max-height: 100%;
+}
+.lightbox-item.plate {
+  background: #ffffff;
+}
+.lightbox-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.lightbox-stage.fit .lightbox-item img {
+  width: auto;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100dvh - 110px);
+}
+.lightbox-item:not(.plate) {
+  background: #15171a;
+  padding: 20px;
+}
+.lightbox-svg svg {
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto;
+}
+.lightbox-stage.fit .lightbox-svg svg {
+  width: min(calc(100vw - 88px), 1600px) !important;
+  max-height: calc(100dvh - 150px);
+}
+
+@media print {
+  .reader .body img.md-img,
+  .mermaid {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .change-nav,
+  .lightbox {
+    display: none !important;
+  }
 }

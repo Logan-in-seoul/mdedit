@@ -16,9 +16,11 @@ import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 import getWasm from "shiki/wasm";
 import rehypeReact from "rehype-react";
 import { MermaidBlock } from "../components/MermaidBlock";
+import { SvgBlock } from "../components/SvgBlock";
 import { rehypeTagChips, TagChip } from "../components/TagChip";
 import { rehypeWikiLinks, WikiLink, resolvePath } from "../components/WikiLink";
 import { rehypeHighlight, rehypeScrSemantics } from "./scr-plugins";
+import { rehypeFigures, rehypeLocalAssets, rehypeNumericColumns, type DocData } from "./figures";
 import { rehypeCallouts } from "../components/Callout";
 import { EmbedBlock } from "../components/EmbedBlock";
 import { BlockRef } from "../components/BlockRef";
@@ -112,6 +114,11 @@ const highlighter = (await createHighlighterCore({
 // 보존하기 위함(className은 실행 불가한 inert 속성이라 XSS 벡터 아님).
 const sanitizeSchema = {
   ...defaultSchema,
+  // 문서에 박아 넣은 base64 그림(data:image/...)을 살린다. src는 img에서만 허용되므로 실행 경로가 아니다.
+  protocols: {
+    ...defaultSchema.protocols,
+    src: [...(defaultSchema.protocols?.src ?? []), "data"],
+  },
   attributes: {
     ...defaultSchema.attributes,
     code: [
@@ -144,6 +151,10 @@ const processor = unified()
   .use(rehypeWikiLinks)
   .use(rehypeScrSemantics)
   .use(rehypeHighlight)
+  // 위키 임베드(![[그림.png]])를 그림으로 바꾸려면 rehypeWikiLinks 뒤에 돌아야 한다
+  .use(rehypeLocalAssets)
+  .use(rehypeFigures)
+  .use(rehypeNumericColumns)
   .use(rehypeReact, {
     Fragment,
     jsx,
@@ -172,13 +183,14 @@ const processor = unified()
           ? props.children[0]
           : props.children;
         const lang = child?.props?.className?.match(/language-(\w+)/)?.[1];
-        if (lang === "mermaid") {
+        if (lang === "mermaid" || lang === "svg") {
           const code =
             typeof child.props.children === "string"
               ? child.props.children
               : Array.isArray(child.props.children)
                 ? child.props.children.join("")
                 : "";
+          if (lang === "svg") return <SvgBlock code={code.trim()} />;
           return <MermaidBlock code={code.trim()} />;
         }
         return <CodeBlock {...props} />;
@@ -186,7 +198,7 @@ const processor = unified()
     },
   });
 
-export async function renderMarkdown(source: string) {
-  const file = await processor.process(source);
+export async function renderMarkdown(source: string, data: DocData = {}) {
+  const file = await processor.process({ value: source, data: { ...data } });
   return file.result as React.ReactElement;
 }
